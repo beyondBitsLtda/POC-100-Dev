@@ -120,43 +120,16 @@
         <div class="tab-panel" data-tab-panel="inseguras" role="tabpanel">
           <h2>Práticas / Condição Inseguras</h2>
           <div class="unsafe-layout">
-            <div class="unsafe-practices">
-              <p><strong>Prática (A-F)*</strong></p>
-              <ul class="practice-list" id="practice-list">
-                <li data-practice="A">Reação das Pessoas</li>
-                <li data-practice="B">Posição das Pessoas</li>
-                <li data-practice="C">EPIs</li>
-                <li data-practice="D">Ferramentas e Equipamentos</li>
-                <li data-practice="E">Procedimentos</li>
-                <li data-practice="F">Ordem, Limpeza e Organização</li>
-              </ul>
-              <input type="hidden" id="practice-selected" required />
-            </div>
             <div class="unsafe-fields">
+              <label><strong>Categoria*</strong>
+                <select id="categoriaInseguraSelect" required>
+                  <option value="">Selecione</option>
+                </select>
+              </label>
               <label><strong>Subcategoria*</strong>
-                <select id="subcategoria" required>
+                <select id="subcategoriaInseguraSelect" required>
                   <option value="">Selecione</option>
-                  <option value="epi">Uso de EPI</option>
-                  <option value="equipamento">Equipamento</option>
-                  <option value="ambiente">Ambiente</option>
                 </select>
-              </label>
-              <label><strong>Quem foi observado?*</strong>
-                <select id="observado" required>
-                  <option value="">Selecione</option>
-                  <option value="colaborador">Colaborador</option>
-                  <option value="terceiro">Terceiro</option>
-                  <option value="visitante">Visitante</option>
-                </select>
-              </label>
-              <label><strong>Quantidade*</strong>
-                <input type="number" id="quantidade" min="1" required />
-              </label>
-              <label><strong>Prática Insegura*</strong>
-                <textarea id="pratica-insegura" rows="3" required></textarea>
-              </label>
-              <label><strong>Ação Recomendada*</strong>
-                <textarea id="acao-recomendada" rows="3" required></textarea>
               </label>
             </div>
           </div>
@@ -393,6 +366,51 @@
       }
     };
 
+    const PRATICA = {
+      'A. Reação das Pessoas': [
+        'A.1 Mudança de Posição',
+        'A.2 Parando o Serviço',
+        'A.3 Ajustando o EPI',
+        'A.4 Adequando o Serviço'
+      ],
+      'B. Posição das Pessoas': [
+        'B.1 Bater Contra / Ser Atingido por',
+        'B.2 Ficar Preso',
+        'B.3 Risco de Queda',
+        'B.4 Risco de Queimadura',
+        'B.5 Risco de Choque Elétrico',
+        'B.6 Inalar Contaminante',
+        'B.7 Absorver Contaminantes',
+        'B.8 Ingerir Contaminantes',
+        'B.9 Postura Inadequada',
+        'B.10 Esforço Inadequado'
+      ],
+      'C. EPIs': [
+        'C.1 Cabeça',
+        'C.2 Sistema Respiratório',
+        'C.3 Olhos e Rosto',
+        'C.4 Ouvidos',
+        'C.5 Mãos e Braços',
+        'C.6 Tronco',
+        'C.7 Pés e Pernas'
+      ],
+      'D. Ferramentas e Equipamentos': [
+        'D.1 Impróprias para o Serviço',
+        'D.2 Usadas Incorretamente',
+        'D.3 Em Condições Inseguras'
+      ],
+      'E. Procedimentos': [
+        'E.1 Inadequados',
+        'E.2 Não Existem Procedimentos Escritos',
+        'E.3 Adequados e Não Seguidos'
+      ],
+      'F. Ordem, Limpeza e Arrumação': [
+        'F.1 Local Sujo',
+        'F.2 Local Desorganizado',
+        'F.3 Local com Vazamento e Poluição Ambiental'
+      ]
+    };
+
     const resolveUnitMap = (unit) => {
       if (!unit) return null;
       const unitMap = MAP[unit];
@@ -420,9 +438,17 @@
       const unidadeSelect = $('#unidadeSelect');
       const setorSelect = $('#setorSelect');
       const subsetorSelect = $('#subsetorSelect');
+      const categoriaInseguraSelect = $('#categoriaInseguraSelect');
+      const subcategoriaInseguraSelect = $('#subcategoriaInseguraSelect');
 
       resetSelect(setorSelect, true);
       resetSelect(subsetorSelect, true);
+      resetSelect(categoriaInseguraSelect, false);
+      resetSelect(subcategoriaInseguraSelect, true);
+
+      Object.keys(PRATICA).forEach((categoria) => {
+        categoriaInseguraSelect.append(new Option(categoria, categoria));
+      });
 
       unidadeSelect.on('change', () => {
         const unidade = unidadeSelect.val();
@@ -442,6 +468,21 @@
         const unitMap = resolveUnitMap(unidade);
         if (!unitMap || !setor) return;
         fillSelect(subsetorSelect, unitMap[setor] || []);
+      });
+
+      categoriaInseguraSelect.on('change', () => {
+        const categoria = categoriaInseguraSelect.val();
+        const subs = PRATICA[categoria] || [];
+        resetSelect(subcategoriaInseguraSelect, true);
+        subs.forEach((subcategoria) => {
+          subcategoriaInseguraSelect.append(new Option(subcategoria, subcategoria));
+        });
+        if (subs.length > 0) {
+          subcategoriaInseguraSelect.prop('disabled', false);
+          if (subs.length === 1) {
+            subcategoriaInseguraSelect.val(subs[0]);
+          }
+        }
       });
     });
   </script>
