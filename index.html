@@ -119,6 +119,18 @@
 
         <div class="tab-panel" data-tab-panel="inseguras" role="tabpanel">
           <h2>Práticas / Condição Inseguras</h2>
+          <fieldset class="radio-group">
+            <legend><strong>Tipo de insegura*</strong></legend>
+            <label>
+              <input type="radio" name="tipoInseguraRadio" value="PRATICA" checked />
+              Prática Insegura
+            </label>
+            <label>
+              <input type="radio" name="tipoInseguraRadio" value="CONDICAO" />
+              Condição Insegura
+            </label>
+          </fieldset>
+          <input type="hidden" id="tipoInsegura" value="PRATICA" />
           <div class="unsafe-layout">
             <div class="unsafe-practices">
               <label><strong>Tipo de Registro*</strong>
@@ -474,6 +486,47 @@
       items.forEach((item) => {
         select.append(new Option(item, item));
       });
+    };
+
+    // SIDEBAR RENDER
+    const renderSidebar = (tipo) => {
+      const $sidebar = $('#practice-list');
+      $sidebar.empty();
+
+      const categorias = INSEGURAS[tipo] || {};
+      Object.entries(categorias).forEach(([categoria, subcategorias]) => {
+        const $categoryItem = $('<li></li>');
+        const $details = $('<details class="category-item" open></details>');
+        const $summary = $(`<summary>${categoria}</summary>`);
+        const $subList = $('<ul class="subcategory-list"></ul>');
+
+        subcategorias.forEach((subcategoria) => {
+          const $subItem = $(`
+            <li>
+              <button
+                type="button"
+                class="subcategory-item"
+                data-categoria="${categoria}"
+                data-subcategoria="${subcategoria}"
+              >${subcategoria}</button>
+            </li>
+          `);
+          $subList.append($subItem);
+        });
+
+        $details.append($summary, $subList);
+        $categoryItem.append($details);
+        $sidebar.append($categoryItem);
+      });
+    };
+
+    // AUTOFILL FROM SIDEBAR
+    const applySidebarSelection = (tipo, categoria, subcategoria) => {
+      const $categoriaSelect = $('#categoriaSelect');
+      const $subcategoriaSelect = $('#subcategoriaSelect');
+
+      $categoriaSelect.val(categoria).trigger('change');
+      $subcategoriaSelect.val(subcategoria).trigger('change');
     };
 
     $(document).ready(() => {
