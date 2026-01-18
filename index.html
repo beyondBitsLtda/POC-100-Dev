@@ -4,7 +4,26 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>POC - 100</title>
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+    integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+    crossorigin="anonymous"
+  />
   <link rel="stylesheet" href="assets/css/style.css" />
+  <style>
+    /* Garantir espaço e overflow visível para os selects abrirem sempre para baixo. */
+    body {
+      padding-bottom: 280px;
+    }
+
+    .app-main,
+    .view-panel,
+    .tab-panel,
+    .form-grid {
+      overflow: visible;
+    }
+  </style>
   <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
@@ -37,36 +56,21 @@
           <h2>Dados Básicos</h2>
           <div class="form-grid">
             <label><strong>Unidade*</strong>
-              <select id="unidade" required>
+              <select id="unidadeSelect" required>
                 <option value="">Selecione</option>
-                <option value="vespasiano">Vespasiano</option>
-                <option value="portoacu">Porto Açu</option>
-                <option value="contagem">Contagem</option>
+                <option value="Vespasiano">Vespasiano</option>
+                <option value="Porto Açu">Porto Açu</option>
+                <option value="Contagem">Contagem</option>
               </select>
             </label>
             <label><strong>Setor*</strong>
-              <select id="setor" required>
+              <select id="setorSelect" required disabled>
                   <option value="">Selecione</option>
-                  <option value="administrativo">Administrativo</option>
-                  <option value="caldeiraria">Caldeiraria</option>
-                  <option value="montagem">Montagem</option>
-                  <option value="usinagem">Usinagem</option>
-                  <option value="manutencao">Manutenção</option>
               </select>
             </label>
             <label><strong>Subsetor*</strong>
-              <select id="subsetor" required>
+              <select id="subsetorSelect" required disabled>
                 <option value="">Selecione</option>
-                <option value="fiscal">Fiscal</option>
-                <option value="financeiro">Financeiro</option>
-                <option value="gg">GG</option>
-                <option value="inovacao">Inovação</option>
-                <option value="ti">TI</option>
-                <option value="facilities">Facilities</option>
-                <option value="almoxarifado">Almoxarifado</option>
-                <option value="ems">EMS</option>
-                <option value="pcp">PCP</option>
-                <option value="ambulatorio">Ambulatório</option>
               </select>
             </label>
             <label><strong>Observador*</strong>
@@ -192,7 +196,7 @@
         <h2>Consultar POC</h2>
         <div class="form-grid">
           <label><strong>Unidade*</strong>
-              <select id="unidade" required>
+              <select id="unidade-consulta" required>
                 <option value="">Selecione</option>
                 <option value="vespasiano">Vespasiano</option>
                 <option value="portoacu">Porto Açu</option>
@@ -200,7 +204,7 @@
               </select>
             </label>
             <label><strong>Setor*</strong>
-              <select id="setor" required>
+              <select id="setor-consulta" required>
                   <option value="">Selecione</option>
                   <option value="administrativo">Administrativo</option>
                   <option value="caldeiraria">Caldeiraria</option>
@@ -210,7 +214,7 @@
               </select>
             </label>
             <label><strong>Subsetor*</strong>
-              <select id="subsetor" required>
+              <select id="subsetor-consulta" required>
                 <option value="">Selecione</option>
                 <option value="fiscal">Fiscal</option>
                 <option value="financeiro">Financeiro</option>
@@ -275,6 +279,191 @@
     </section>
   </main>
 
+  <script
+    src="https://code.jquery.com/jquery-3.7.1.min.js"
+    integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo="
+    crossorigin="anonymous"
+  ></script>
+  <script
+    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+    crossorigin="anonymous"
+  ></script>
+  <script>
+    // Mapeamento de unidades -> setores -> subsetores.
+    const MAP = {
+      Vespasiano: {
+        Administrativo: [
+          'Comercial',
+          'diretoria',
+          'Engenharia de Aplicações e Vendas',
+          'Facilites',
+          'Financeiro',
+          'Gente e Gestão',
+          'Gerência de Projetos',
+          'Marketing',
+          'Pesquisa e Desenvolvimento',
+          'SGQ',
+          'Suprimentos',
+          'TI'
+        ],
+        Almoxarifado: [
+          'Almoxarifado',
+          'Chaparia',
+          'Magazine'
+        ],
+        'Area Externa': [
+          'Área Externa',
+          'Banker',
+          'Estacionamento',
+          'FAT',
+          'Montagem de Andaimes',
+          'Oficina de Excelência Operacional',
+          'Sala de Treinamento'
+        ],
+        Calderaria: [
+          'CD - Centro de Distribuição',
+          'Célula A',
+          'Célula B',
+          'Célula ME',
+          'Célula Robotizada',
+          'Célula T',
+          'Centro Tecnológico Soldagem',
+          'Forno'
+        ],
+        CQ: [
+          'CQ Documental',
+          'CQ Fábrica'
+        ],
+        'Field Service': [
+          'Administrativo',
+          'Almoxarifado',
+          'DOW',
+          'Obra Coifa',
+          'Saipem Guarujá-SP'
+        ],
+        Logística: [
+          'Expedição',
+          'Operadores de ponte',
+          'Serviços Gerais'
+        ],
+        Manutenção: [
+          'Manutenção',
+          'Terceiros'
+        ],
+        'Montagem de Campo': [
+          'Montagem de Estacas'
+        ],
+        'Montagem Mecanica': [
+          'Montagem Mecanica'
+        ],
+        Pintura: [
+          'Pintura'
+        ],
+        'Produtivo Indireto': [
+          'Engenaria Industria Usinagem',
+          'Engenharia de Calderaria',
+          'Engenharia de Materiais e Solda',
+          'Engenaria de Usinagem',
+          'Engenharia Industrial Mecanica',
+          'Excelência Operaciona',
+          'Gerência da Produção',
+          'Melhoria de Manufatura',
+          'Metrologia',
+          'PCP',
+          'SESMT',
+          'SGA'
+        ],
+        Terceiros: [
+          'Clientes Residente',
+          'Cliente Visitante',
+          'Conservação e Limpeza',
+          'Fretamento (Allure)',
+          'Portaria',
+          'Restaurante',
+          'Vigilancia e Portaria'
+        ],
+        Usinagem: [
+          'Ferramentaria',
+          'Leve',
+          'Pesada'
+        ]
+      },
+      Contagem: 'Vespasiano',
+      'Porto Açu': {
+        Cais: [
+          'Montagem/Soldagem'
+        ],
+        'Galpão Delp Açu': [
+          'Administrativo',
+          'Árae de Produção',
+          'Manutenção',
+          'Montagem/Mov de Carga',
+          'Soldagem'
+        ],
+        'Montagem Externa': [
+          'Jumper Niterói/ Bacalhau'
+        ]
+      }
+    };
+
+    // Resolve aliases (ex.: Contagem -> Vespasiano).
+    const resolveUnitMap = (unit) => {
+      if (!unit) return null;
+      const unitMap = MAP[unit];
+      if (!unitMap) return null;
+      if (typeof unitMap === 'string') {
+        return MAP[unitMap] || null;
+      }
+      return unitMap;
+    };
+
+    // Limpa o select, aplica placeholder e opcionalmente desabilita.
+    const resetSelect = (select, disabled = true) => {
+      select.empty();
+      select.append(new Option('Selecione', ''));
+      select.prop('disabled', disabled);
+    };
+
+    // Preenche um select com itens e habilita.
+    const fillSelect = (select, items = []) => {
+      resetSelect(select, false);
+      items.forEach((item) => {
+        select.append(new Option(item, item));
+      });
+    };
+
+    $(document).ready(() => {
+      const unidadeSelect = $('#unidadeSelect');
+      const setorSelect = $('#setorSelect');
+      const subsetorSelect = $('#subsetorSelect');
+
+      resetSelect(setorSelect, true);
+      resetSelect(subsetorSelect, true);
+
+      // Ao escolher unidade: reseta setor/subsetor e preenche setor.
+      unidadeSelect.on('change', () => {
+        const unidade = unidadeSelect.val();
+        resetSelect(setorSelect, true);
+        resetSelect(subsetorSelect, true);
+
+        const unitMap = resolveUnitMap(unidade);
+        if (!unitMap) return;
+        fillSelect(setorSelect, Object.keys(unitMap));
+      });
+
+      // Ao escolher setor: reseta subsetor e preenche subsetor.
+      setorSelect.on('change', () => {
+        const unidade = unidadeSelect.val();
+        const setor = setorSelect.val();
+        resetSelect(subsetorSelect, true);
+
+        const unitMap = resolveUnitMap(unidade);
+        if (!unitMap || !setor) return;
+        fillSelect(subsetorSelect, unitMap[setor] || []);
+      });
+    });
+  </script>
   <script src="assets/js/app.js"></script>
 </body>
 </html>
