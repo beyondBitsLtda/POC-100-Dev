@@ -4,8 +4,9 @@ const tabPanels = document.querySelectorAll('.tab-panel');
 const addBtn = document.getElementById('add-btn');
 const viewButtons = document.querySelectorAll('[data-view]');
 const viewPanels = document.querySelectorAll('[data-view-panel]');
-const practiceList = document.getElementById('practice-list');
-const practiceSelected = document.getElementById('practice-selected');
+const tipoInseguraSelect = document.getElementById('tipoInsegura');
+const categoriaSelect = document.getElementById('categoriaInseguraSelect');
+const subcategoriaSelect = document.getElementById('subcategoriaInseguraSelect');
 const consultarBtn = document.getElementById('consultar-btn');
 const consultaResultado = document.getElementById('consulta-resultado');
 
@@ -21,12 +22,13 @@ const basicFields = [
 ];
 
 const unsafeFields = [
-  document.getElementById('subcategoria'),
+  tipoInseguraSelect,
+  categoriaSelect,
+  subcategoriaSelect,
   document.getElementById('observado'),
   document.getElementById('quantidade'),
   document.getElementById('pratica-insegura'),
-  document.getElementById('acao-recomendada'),
-  practiceSelected
+  document.getElementById('acao-recomendada')
 ];
 
 const safeFields = [
@@ -123,8 +125,6 @@ const updateUI = () => {
 
 const resetFormState = () => {
   form.reset();
-  practiceSelected.value = '';
-  practiceList.querySelectorAll('li').forEach((item) => item.classList.remove('is-selected'));
   setActiveTab('basicos');
   disableTab('inseguras', true);
   disableTab('seguras', true);
@@ -140,15 +140,6 @@ viewButtons.forEach((button) => {
       panel.classList.toggle('is-active', panel.dataset.viewPanel === view);
     });
   });
-});
-
-practiceList.addEventListener('click', (event) => {
-  const item = event.target.closest('li');
-  if (!item) return;
-  practiceList.querySelectorAll('li').forEach((li) => li.classList.remove('is-selected'));
-  item.classList.add('is-selected');
-  practiceSelected.value = item.dataset.practice || '';
-  updateUI();
 });
 
 tabButtons.forEach((tab) => {
