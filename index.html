@@ -11,26 +11,6 @@
     crossorigin="anonymous"
   />
   <link rel="stylesheet" href="assets/css/style.css" />
-  <style>
-    /* Garantir espaço e overflow visível para os selects abrirem sempre para baixo. */
-    body {
-      padding-bottom: 280px;
-    }
-
-    .app-main,
-    .view-panel,
-    .tab-panel,
-    .form-grid {
-      overflow: visible;
-    }
-
-    /* Listbox: exibir opções em orientação top-down sem corte. */
-    .listbox-select {
-      height: auto;
-      max-height: none;
-      overflow: visible;
-    }
-  </style>
   <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
@@ -63,7 +43,7 @@
           <h2>Dados Básicos</h2>
           <div class="form-grid">
             <label><strong>Unidade*</strong>
-              <select id="unidadeSelect" class="listbox-select" size="4" required>
+              <select id="unidadeSelect" required>
                 <option value="">Selecione</option>
                 <option value="Vespasiano">Vespasiano</option>
                 <option value="Porto Açu">Porto Açu</option>
@@ -71,30 +51,28 @@
               </select>
             </label>
             <label><strong>Setor*</strong>
-              <select id="setorSelect" class="listbox-select" size="4" required disabled>
+              <select id="setorSelect" required disabled>
                   <option value="">Selecione</option>
               </select>
             </label>
             <label><strong>Subsetor*</strong>
-              <select id="subsetorSelect" class="listbox-select" size="4" required disabled>
+              <select id="subsetorSelect" required disabled>
                 <option value="">Selecione</option>
               </select>
             </label>
             <label><strong>Observador*</strong>
-              <select id="observadorSelect" required>
+              <select id="observador" required>
                 <option value="">Selecione</option>
-                <option value="Brayan">Brayan</option>
-                <option value="Alice">Alice</option>
-                <option value="Visitante">Visitante</option>
-                <option value="Davi">Davi</option>
-                <option value="Samuel">Samuel</option>
-                <option value="Lucas">Lucas</option>
-                <option value="Walef">Walef</option>
-                <option value="Welington">Welington</option>
-                <option value="Eder">Eder</option>
-                <option value="Guilherme">Guilherme</option>
-                <option value="Humberto">Humberto</option>
-                <option value="Wagner">Wagner</option>
+                <option value="davi">Davi</option>
+                <option value="brayan">Brayan</option>
+                <option value="samuel">Samuel</option>
+                <option value="lucas">Lucas</option>
+                <option value="walef">Walef</option>
+                <option value="welington">Welington</option>
+                <option value="eder">Eder</option>
+                <option value="guilherme">Guilherme</option>
+                <option value="humberto">Humberto</option>
+                <option value="wagner">Wagner</option>
               </select>
             </label>
             <label>Acompanhante
@@ -238,7 +216,7 @@
               </select>
             </label>
             <label><strong>Observador*</strong>
-              <select id="observador-consulta" required>
+              <select id="observador" required>
                 <option value="">Selecione</option>
                 <option value="davi">Davi</option>
                 <option value="brayan">Brayan</option>
@@ -299,10 +277,6 @@
     crossorigin="anonymous"
   ></script>
   <script>
-    // =========================
-    // MAPEAMENTO
-    // =========================
-    // Mapeamento de unidades -> setores -> subsetores.
     const MAP = {
       Vespasiano: {
         Administrativo: [
@@ -419,10 +393,6 @@
       }
     };
 
-    // =========================
-    // UTILS
-    // =========================
-    // Resolve aliases (ex.: Contagem -> Vespasiano).
     const resolveUnitMap = (unit) => {
       if (!unit) return null;
       const unitMap = MAP[unit];
@@ -433,68 +403,27 @@
       return unitMap;
     };
 
-    // Limpa o select, aplica placeholder, ajusta tamanho e opcionalmente desabilita.
     const resetSelect = (select, disabled = true) => {
       select.empty();
       select.append(new Option('Selecione', ''));
-      select.attr('size', 2);
       select.prop('disabled', disabled);
     };
 
-    // Preenche um select com itens, ajusta o tamanho para exibir tudo e habilita.
     const fillSelect = (select, items = []) => {
       resetSelect(select, false);
       items.forEach((item) => {
         select.append(new Option(item, item));
       });
-      select.attr('size', Math.max(items.length + 1, 2));
-    };
-
-    // Preenche a cascata Unidade -> Setor -> Subsetor de forma sequencial.
-    const applyCascadeSelection = ({
-      unidade,
-      setor,
-      subsetor,
-      unidadeSelect,
-      setorSelect,
-      subsetorSelect
-    }) => {
-      if (!unidade) return;
-      unidadeSelect.val(unidade).trigger('change');
-
-      if (setor) {
-        setorSelect.val(setor).trigger('change');
-      }
-
-      if (subsetor) {
-        subsetorSelect.val(subsetor).trigger('change');
-      }
     };
 
     $(document).ready(() => {
       const unidadeSelect = $('#unidadeSelect');
       const setorSelect = $('#setorSelect');
       const subsetorSelect = $('#subsetorSelect');
-      const observadorSelect = $('#observadorSelect');
-
-      const OBSERVADORES_ESPECIAIS = {
-        Brayan: {
-          unidade: 'Vespasiano',
-          setor: 'Administrativo',
-          subsetor: 'TI'
-        }
-      };
-
-      // Ajusta o tamanho do listbox de unidade para exibir todas as opções.
-      unidadeSelect.attr('size', unidadeSelect.find('option').length);
 
       resetSelect(setorSelect, true);
       resetSelect(subsetorSelect, true);
 
-      // =========================
-      // EVENTOS
-      // =========================
-      // Ao escolher unidade: reseta setor/subsetor e preenche setor.
       unidadeSelect.on('change', () => {
         const unidade = unidadeSelect.val();
         resetSelect(setorSelect, true);
@@ -505,7 +434,6 @@
         fillSelect(setorSelect, Object.keys(unitMap));
       });
 
-      // Ao escolher setor: reseta subsetor e preenche subsetor.
       setorSelect.on('change', () => {
         const unidade = unidadeSelect.val();
         const setor = setorSelect.val();
@@ -513,32 +441,8 @@
 
         const unitMap = resolveUnitMap(unidade);
         if (!unitMap || !setor) return;
-        const subsetores = unitMap[setor] || [];
-        fillSelect(subsetorSelect, subsetores);
-
-        if (subsetores.length === 1) {
-          subsetorSelect.val(subsetores[0]).trigger('change');
-        }
+        fillSelect(subsetorSelect, unitMap[setor] || []);
       });
-
-      // Observador -> (Unidade, Setor, Subsetor) com autopreenchimento editável.
-      observadorSelect.on('change', () => {
-        const observador = observadorSelect.val();
-        const defaults = OBSERVADORES_ESPECIAIS[observador];
-        if (!defaults) return;
-
-        applyCascadeSelection({
-          ...defaults,
-          unidadeSelect,
-          setorSelect,
-          subsetorSelect
-        });
-      });
-
-      // =========================
-      // AUTOPREENCHIMENTO INICIAL (simulação usuário logado)
-      // =========================
-      observadorSelect.val('Brayan').trigger('change');
     });
   </script>
   <script src="assets/js/app.js"></script>
