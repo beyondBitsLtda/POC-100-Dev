@@ -4,7 +4,6 @@ const tabPanels = document.querySelectorAll('.tab-panel');
 const addBtn = document.getElementById('add-btn');
 const viewButtons = document.querySelectorAll('[data-view]');
 const viewPanels = document.querySelectorAll('[data-view-panel]');
-const tipoInseguraSelect = document.getElementById('tipoInsegura');
 const categoriaSelect = document.getElementById('categoriaInseguraSelect');
 const subcategoriaSelect = document.getElementById('subcategoriaInseguraSelect');
 const consultarBtn = document.getElementById('consultar-btn');
@@ -22,7 +21,6 @@ const basicFields = [
 ];
 
 const unsafeFields = [
-  tipoInseguraSelect,
   categoriaSelect,
   subcategoriaSelect,
   document.getElementById('observado'),
@@ -57,6 +55,11 @@ const getSelectedType = () => {
   return checked ? checked.value : '';
 };
 
+const getTipoInseguraSelecionado = () => {
+  const checked = document.querySelector('input[name="tipoInsegura"]:checked');
+  return checked ? checked.value : '';
+};
+
 const setActiveTab = (tabName) => {
   tabButtons.forEach((tab) => {
     const isActive = tab.dataset.tab === tabName;
@@ -83,7 +86,9 @@ const validateBasic = () => {
 };
 
 const validateUnsafe = () => {
-  return unsafeFields.every((field) => field.value.trim() !== '' && field.checkValidity());
+  const tipoInseguraSelecionado = getTipoInseguraSelecionado() !== '';
+  return tipoInseguraSelecionado
+    && unsafeFields.every((field) => field.value.trim() !== '' && field.checkValidity());
 };
 
 const validateSafe = () => {
@@ -157,6 +162,10 @@ tabButtons.forEach((tab) => {
 });
 
 document.querySelectorAll('input[name="tipo-registro"]').forEach((radio) => {
+  radio.addEventListener('change', updateUI);
+});
+
+document.querySelectorAll('input[name="tipoInsegura"]').forEach((radio) => {
   radio.addEventListener('change', updateUI);
 });
 

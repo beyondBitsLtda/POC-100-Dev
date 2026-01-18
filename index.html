@@ -120,26 +120,18 @@
         <div class="tab-panel" data-tab-panel="inseguras" role="tabpanel">
           <h2>Práticas / Condição Inseguras</h2>
           <fieldset class="radio-group">
-            <legend><strong>Tipo de insegura*</strong></legend>
+            <legend><strong>Tipo de Registro*</strong></legend>
             <label>
-              <input type="radio" name="tipoInseguraRadio" value="PRATICA" checked />
+              <input type="radio" name="tipoInsegura" value="PRATICA" required />
               Prática Insegura
             </label>
             <label>
-              <input type="radio" name="tipoInseguraRadio" value="CONDICAO" />
+              <input type="radio" name="tipoInsegura" value="CONDICAO" required />
               Condição Insegura
             </label>
           </fieldset>
-          <input type="hidden" id="tipoInsegura" value="PRATICA" />
           <div class="unsafe-layout">
             <div class="unsafe-practices">
-              <label><strong>Tipo de Registro*</strong>
-                <select id="tipoInsegura" required>
-                  <option value="">Selecione</option>
-                  <option value="PRATICA">Prática Insegura</option>
-                  <option value="CONDICAO">Condição Insegura</option>
-                </select>
-              </label>
               <label><strong>Categoria*</strong>
                 <select id="categoriaInseguraSelect" required disabled>
                   <option value="">Selecione</option>
@@ -289,65 +281,66 @@
   ></script>
   <script>
     // INSEGURAS DATA
-    const INSEGURAS = {
-      PRATICA: {
-        'A. Reação das Pessoas': [
-          'A.1 Mudança de Posição',
-          'A.2 Parando o Serviço',
-          'A.3 Ajustando o EPI',
-          'A.4 Adequando o Serviço'
-        ],
-        'B. Posição das Pessoas': [
-          'B.1 Bater Contra / Ser Atingido por',
-          'B.2 Ficar Preso',
-          'B.3 Risco de Queda',
-          'B.4 Risco de Queimadura',
-          'B.5 Risco de Choque Elétrico',
-          'B.6 Inalar Contaminante',
-          'B.7 Absorver Contaminantes',
-          'B.8 Ingerir Contaminantes',
-          'B.9 Postura Inadequada',
-          'B.10 Esforço Inadequado'
-        ],
-        'C. EPIs': [
-          'C.1 Cabeça',
-          'C.2 Sistema Respiratório',
-          'C.3 Olhos e Rosto',
-          'C.4 Ouvidos',
-          'C.5 Mãos e Braços',
-          'C.6 Tronco',
-          'C.7 Pés e Pernas'
-        ],
-        'D. Ferramentas e Equipamentos': [
-          'D.1 Impróprias para o Serviço',
-          'D.2 Usadas Incorretamente',
-          'D.3 Em Condições Inseguras'
-        ],
-        'E. Procedimentos': [
-          'E.1 Inadequados',
-          'E.2 Não Existem Procedimentos Escritos',
-          'E.3 Adequados e Não Seguidos'
-        ],
-        'F. Ordem, Limpeza e Arrumação': [
-          'F.1 Local Sujo',
-          'F.2 Local Desorganizado',
-          'F.3 Local com Vazamento e Poluição Ambiental'
-        ]
-      },
-      CONDICAO: {
-        // TODO: Substituir lista real de Condição Insegura quando fornecida.
-        'CI. Ambiente / Área': [
-          'CI.1 Piso irregular / escorregadio',
-          'CI.2 Iluminação inadequada',
-          'CI.3 Sinalização ausente / falha'
-        ],
-        'CI. Equipamentos / Estruturas': [
-          'CI.4 Proteções ausentes',
-          'CI.5 Falha mecânica aparente',
-          'CI.6 Vazamento / risco físico'
-        ]
-      }
+    const PRATICA = {
+      'A. Reação das Pessoas': [
+        'A.1 Mudança de Posição',
+        'A.2 Parando o Serviço',
+        'A.3 Ajustando o EPI',
+        'A.4 Adequando o Serviço'
+      ],
+      'B. Posição das Pessoas': [
+        'B.1 Bater Contra / Ser Atingido por',
+        'B.2 Ficar Preso',
+        'B.3 Risco de Queda',
+        'B.4 Risco de Queimadura',
+        'B.5 Risco de Choque Elétrico',
+        'B.6 Inalar Contaminante',
+        'B.7 Absorver Contaminantes',
+        'B.8 Ingerir Contaminantes',
+        'B.9 Postura Inadequada',
+        'B.10 Esforço Inadequado'
+      ],
+      'C. EPIs': [
+        'C.1 Cabeça',
+        'C.2 Sistema Respiratório',
+        'C.3 Olhos e Rosto',
+        'C.4 Ouvidos',
+        'C.5 Mãos e Braços',
+        'C.6 Tronco',
+        'C.7 Pés e Pernas'
+      ],
+      'D. Ferramentas e Equipamentos': [
+        'D.1 Impróprias para o Serviço',
+        'D.2 Usadas Incorretamente',
+        'D.3 Em Condições Inseguras'
+      ],
+      'E. Procedimentos': [
+        'E.1 Inadequados',
+        'E.2 Não Existem Procedimentos Escritos',
+        'E.3 Adequados e Não Seguidos'
+      ],
+      'F. Ordem, Limpeza e Arrumação': [
+        'F.1 Local Sujo',
+        'F.2 Local Desorganizado',
+        'F.3 Local com Vazamento e Poluição Ambiental'
+      ]
     };
+
+    const CONDICAO = {
+      'CI. Ambiente / Área': [
+        'CI.1 Piso irregular / escorregadio',
+        'CI.2 Iluminação inadequada',
+        'CI.3 Sinalização ausente / falha'
+      ],
+      'CI. Equipamentos / Estruturas': [
+        'CI.4 Proteções ausentes',
+        'CI.5 Falha mecânica aparente',
+        'CI.6 Vazamento / risco físico'
+      ]
+    };
+    // TODO: substituir CONDICAO quando lista oficial chegar.
+
+    const INSEGURAS = { PRATICA, CONDICAO };
 
     const MAP = {
       Vespasiano: {
@@ -545,7 +538,6 @@
         }, 0);
       };
 
-      const $tipoInsegura = $('#tipoInsegura');
       const $categoriaSelect = $('#categoriaInseguraSelect');
       const $subcategoriaSelect = $('#subcategoriaInseguraSelect');
 
@@ -595,6 +587,10 @@
         }
       });
 
+      const getTipoSelecionado = () => {
+        return $('input[name="tipoInsegura"]:checked').val() || '';
+      };
+
       // TIPO → CATEGORIA
       const populateCategorias = (tipo) => {
         if (!tipo) {
@@ -606,6 +602,7 @@
         const categorias = Object.keys(INSEGURAS[tipo] || {});
         fillSelect($categoriaSelect, categorias, 'Selecione');
         resetSelect($subcategoriaSelect, 'Selecione', true);
+        $categoriaSelect.prop('disabled', false);
       };
 
       // CATEGORIA → SUBCATEGORIA
@@ -617,21 +614,26 @@
 
         const subcategorias = (INSEGURAS[tipo] && INSEGURAS[tipo][categoria]) || [];
         fillSelect($subcategoriaSelect, subcategorias, 'Selecione');
+        $subcategoriaSelect.prop('disabled', false);
         if (subcategorias.length === 1) {
           $subcategoriaSelect.val(subcategorias[0]).trigger('change');
         }
       };
 
-      $tipoInsegura.on('change', () => {
-        populateCategorias($tipoInsegura.val());
+      $('input[name="tipoInsegura"]').on('change', () => {
+        populateCategorias(getTipoSelecionado());
       });
 
       $categoriaSelect.on('change', () => {
-        populateSubcategorias($tipoInsegura.val(), $categoriaSelect.val());
+        populateSubcategorias(getTipoSelecionado(), $categoriaSelect.val());
       });
 
       resetSelect($categoriaSelect, 'Selecione', true);
       resetSelect($subcategoriaSelect, 'Selecione', true);
+      const tipoInicial = getTipoSelecionado();
+      if (tipoInicial) {
+        populateCategorias(tipoInicial);
+      }
     });
   </script>
   <script src="assets/js/app.js"></script>
