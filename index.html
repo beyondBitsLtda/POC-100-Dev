@@ -11,6 +11,19 @@
     crossorigin="anonymous"
   />
   <link rel="stylesheet" href="assets/css/style.css" />
+  <style>
+    /* Garantir espaço e overflow visível para os selects abrirem sempre para baixo. */
+    body {
+      padding-bottom: 280px;
+    }
+
+    .app-main,
+    .view-panel,
+    .tab-panel,
+    .form-grid {
+      overflow: visible;
+    }
+  </style>
   <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
@@ -277,6 +290,7 @@
     crossorigin="anonymous"
   ></script>
   <script>
+    // Mapeamento de unidades -> setores -> subsetores.
     const MAP = {
       Vespasiano: {
         Administrativo: [
@@ -393,6 +407,7 @@
       }
     };
 
+    // Resolve aliases (ex.: Contagem -> Vespasiano).
     const resolveUnitMap = (unit) => {
       if (!unit) return null;
       const unitMap = MAP[unit];
@@ -403,12 +418,14 @@
       return unitMap;
     };
 
+    // Limpa o select, aplica placeholder e opcionalmente desabilita.
     const resetSelect = (select, disabled = true) => {
       select.empty();
       select.append(new Option('Selecione', ''));
       select.prop('disabled', disabled);
     };
 
+    // Preenche um select com itens e habilita.
     const fillSelect = (select, items = []) => {
       resetSelect(select, false);
       items.forEach((item) => {
@@ -424,6 +441,7 @@
       resetSelect(setorSelect, true);
       resetSelect(subsetorSelect, true);
 
+      // Ao escolher unidade: reseta setor/subsetor e preenche setor.
       unidadeSelect.on('change', () => {
         const unidade = unidadeSelect.val();
         resetSelect(setorSelect, true);
@@ -434,6 +452,7 @@
         fillSelect(setorSelect, Object.keys(unitMap));
       });
 
+      // Ao escolher setor: reseta subsetor e preenche subsetor.
       setorSelect.on('change', () => {
         const unidade = unidadeSelect.val();
         const setor = setorSelect.val();
