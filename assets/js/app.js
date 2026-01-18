@@ -4,8 +4,8 @@ const tabPanels = document.querySelectorAll('.tab-panel');
 const addBtn = document.getElementById('add-btn');
 const viewButtons = document.querySelectorAll('[data-view]');
 const viewPanels = document.querySelectorAll('[data-view-panel]');
-const practiceList = document.getElementById('practice-list');
-const practiceSelected = document.getElementById('practice-selected');
+const categoriaSelect = document.getElementById('categoriaInseguraSelect');
+const subcategoriaSelect = document.getElementById('subcategoriaInseguraSelect');
 const consultarBtn = document.getElementById('consultar-btn');
 const consultaResultado = document.getElementById('consulta-resultado');
 
@@ -21,12 +21,12 @@ const basicFields = [
 ];
 
 const unsafeFields = [
-  document.getElementById('subcategoria'),
+  categoriaSelect,
+  subcategoriaSelect,
   document.getElementById('observado'),
   document.getElementById('quantidade'),
   document.getElementById('pratica-insegura'),
-  document.getElementById('acao-recomendada'),
-  practiceSelected
+  document.getElementById('acao-recomendada')
 ];
 
 const safeFields = [
@@ -52,6 +52,11 @@ const mockResults = [
 
 const getSelectedType = () => {
   const checked = document.querySelector('input[name="tipo-registro"]:checked');
+  return checked ? checked.value : '';
+};
+
+const getTipoInseguraSelecionado = () => {
+  const checked = document.querySelector('input[name="tipoInsegura"]:checked');
   return checked ? checked.value : '';
 };
 
@@ -81,7 +86,9 @@ const validateBasic = () => {
 };
 
 const validateUnsafe = () => {
-  return unsafeFields.every((field) => field.value.trim() !== '' && field.checkValidity());
+  const tipoInseguraSelecionado = getTipoInseguraSelecionado() !== '';
+  return tipoInseguraSelecionado
+    && unsafeFields.every((field) => field.value.trim() !== '' && field.checkValidity());
 };
 
 const validateSafe = () => {
@@ -123,8 +130,6 @@ const updateUI = () => {
 
 const resetFormState = () => {
   form.reset();
-  practiceSelected.value = '';
-  practiceList.querySelectorAll('li').forEach((item) => item.classList.remove('is-selected'));
   setActiveTab('basicos');
   disableTab('inseguras', true);
   disableTab('seguras', true);
@@ -142,15 +147,6 @@ viewButtons.forEach((button) => {
   });
 });
 
-practiceList.addEventListener('click', (event) => {
-  const item = event.target.closest('li');
-  if (!item) return;
-  practiceList.querySelectorAll('li').forEach((li) => li.classList.remove('is-selected'));
-  item.classList.add('is-selected');
-  practiceSelected.value = item.dataset.practice || '';
-  updateUI();
-});
-
 tabButtons.forEach((tab) => {
   tab.addEventListener('click', () => {
     if (tab.classList.contains('is-disabled')) {
@@ -166,6 +162,10 @@ tabButtons.forEach((tab) => {
 });
 
 document.querySelectorAll('input[name="tipo-registro"]').forEach((radio) => {
+  radio.addEventListener('change', updateUI);
+});
+
+document.querySelectorAll('input[name="tipoInsegura"]').forEach((radio) => {
   radio.addEventListener('change', updateUI);
 });
 
