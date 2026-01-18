@@ -10,9 +10,9 @@ const consultarBtn = document.getElementById('consultar-btn');
 const consultaResultado = document.getElementById('consulta-resultado');
 
 const basicFields = [
-  document.getElementById('unidade'),
-  document.getElementById('setor'),
-  document.getElementById('subsetor'),
+  document.getElementById('unidadeSelect'),
+  document.getElementById('setorSelect'),
+  document.getElementById('subsetorSelect'),
   document.getElementById('observador'),
   document.getElementById('data'),
   document.getElementById('hora'),
