@@ -23,6 +23,13 @@
     .form-grid {
       overflow: visible;
     }
+
+    /* Listbox: exibir opções em orientação top-down sem corte. */
+    .listbox-select {
+      height: auto;
+      max-height: none;
+      overflow: visible;
+    }
   </style>
   <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -56,7 +63,7 @@
           <h2>Dados Básicos</h2>
           <div class="form-grid">
             <label><strong>Unidade*</strong>
-              <select id="unidadeSelect" required>
+              <select id="unidadeSelect" class="listbox-select" size="4" required>
                 <option value="">Selecione</option>
                 <option value="Vespasiano">Vespasiano</option>
                 <option value="Porto Açu">Porto Açu</option>
@@ -64,12 +71,12 @@
               </select>
             </label>
             <label><strong>Setor*</strong>
-              <select id="setorSelect" required disabled>
+              <select id="setorSelect" class="listbox-select" size="4" required disabled>
                   <option value="">Selecione</option>
               </select>
             </label>
             <label><strong>Subsetor*</strong>
-              <select id="subsetorSelect" required disabled>
+              <select id="subsetorSelect" class="listbox-select" size="4" required disabled>
                 <option value="">Selecione</option>
               </select>
             </label>
@@ -418,25 +425,30 @@
       return unitMap;
     };
 
-    // Limpa o select, aplica placeholder e opcionalmente desabilita.
+    // Limpa o select, aplica placeholder, ajusta tamanho e opcionalmente desabilita.
     const resetSelect = (select, disabled = true) => {
       select.empty();
       select.append(new Option('Selecione', ''));
+      select.attr('size', 2);
       select.prop('disabled', disabled);
     };
 
-    // Preenche um select com itens e habilita.
+    // Preenche um select com itens, ajusta o tamanho para exibir tudo e habilita.
     const fillSelect = (select, items = []) => {
       resetSelect(select, false);
       items.forEach((item) => {
         select.append(new Option(item, item));
       });
+      select.attr('size', Math.max(items.length + 1, 2));
     };
 
     $(document).ready(() => {
       const unidadeSelect = $('#unidadeSelect');
       const setorSelect = $('#setorSelect');
       const subsetorSelect = $('#subsetorSelect');
+
+      // Ajusta o tamanho do listbox de unidade para exibir todas as opções.
+      unidadeSelect.attr('size', unidadeSelect.find('option').length);
 
       resetSelect(setorSelect, true);
       resetSelect(subsetorSelect, true);
