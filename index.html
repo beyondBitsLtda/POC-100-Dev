@@ -420,6 +420,17 @@
       const unidadeSelect = $('#unidadeSelect');
       const setorSelect = $('#setorSelect');
       const subsetorSelect = $('#subsetorSelect');
+      const observadorSelect = $('#poc-form #observador');
+
+      const applySelectionChain = ({ unidade, setor, subsetor }) => {
+        unidadeSelect.val(unidade).trigger('change');
+        setTimeout(() => {
+          setorSelect.val(setor).trigger('change');
+          setTimeout(() => {
+            subsetorSelect.val(subsetor);
+          }, 0);
+        }, 0);
+      };
 
       resetSelect(setorSelect, true);
       resetSelect(subsetorSelect, true);
@@ -441,7 +452,30 @@
 
         const unitMap = resolveUnitMap(unidade);
         if (!unitMap || !setor) return;
-        fillSelect(subsetorSelect, unitMap[setor] || []);
+        const subsetores = unitMap[setor] || [];
+        fillSelect(subsetorSelect, subsetores);
+        // AUTOSELEÇÃO SUBSETOR ÚNICO
+        if (subsetores.length === 1) {
+          subsetorSelect.val(subsetores[0]);
+        }
+      });
+
+      // PRESELEÇÃO OBSERVADOR BRAYAN
+      observadorSelect.val('brayan');
+      applySelectionChain({
+        unidade: 'Vespasiano',
+        setor: 'Administrativo',
+        subsetor: 'TI'
+      });
+
+      observadorSelect.on('change', () => {
+        if (observadorSelect.val() === 'brayan') {
+          applySelectionChain({
+            unidade: 'Vespasiano',
+            setor: 'Administrativo',
+            subsetor: 'TI'
+          });
+        }
       });
     });
   </script>
