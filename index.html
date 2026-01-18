@@ -239,6 +239,27 @@
     </section>
   </main>
 
+  <div class="modal fade" id="requiredFieldsModal" tabindex="-1" aria-labelledby="requiredFieldsModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="requiredFieldsModalLabel">Campos obrigatórios</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-body">
+          <p>
+            Para continuar, preencha todos os campos obrigatórios (*) da etapa atual.
+            Depois disso, você poderá avançar de aba ou clicar em Adicionar.
+          </p>
+          <ul id="requiredFieldsList" class="mb-0 d-none"></ul>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Entendi</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script
     src="https://code.jquery.com/jquery-3.7.1.min.js"
     integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo="
@@ -485,6 +506,117 @@
         }
       });
     });
+  </script>
+  <script>
+    const formElement = document.getElementById('poc-form');
+    const requiredModalElement = document.getElementById('requiredFieldsModal');
+    const requiredFieldsList = document.getElementById('requiredFieldsList');
+    const requiredModal = requiredModalElement ? new bootstrap.Modal(requiredModalElement) : null;
+
+    const REQUIRED_FIELDS = {
+      basico: [
+        { label: 'Unidade', selectors: ['#unidadeSelect', '[name="unidade"]'] },
+        { label: 'Setor', selectors: ['#setorSelect', '[name="setor"]'] },
+        { label: 'Subsetor', selectors: ['#subsetorSelect', '[name="subsetor"]'] },
+        { label: 'Observador', selectors: ['#observadorSelect', '#observador', '[name="observador"]'] },
+        { label: 'Data', selectors: ['#dataInput', '#data', '[name="data"]'] },
+        { label: 'Hora início', selectors: ['#horaInicioInput', '#hora', '[name="horaInicio"]'] },
+        { label: 'Hora fim', selectors: ['#horaFimInput', '[name="horaFim"]'] },
+        { label: 'Pessoas observadas', selectors: ['#pessoasObservadasInput', '#pessoas-observadas', '[name="pessoasObservadas"]'] },
+        { label: 'Pessoas na área', selectors: ['#pessoasNaAreaInput', '#pessoas-area', '[name="pessoasNaArea"]'] }
+      ],
+      pratica: [
+        { label: 'Categoria', selectors: ['#categoriaInseguraSelect', '[name="categoriaInsegura"]'] },
+        { label: 'Subcategoria', selectors: ['#subcategoriaInseguraSelect', '[name="subcategoriaInsegura"]'] }
+      ]
+    };
+
+    const getFieldBySelectors = (selectors) => {
+      if (!formElement) return null;
+      return selectors
+        .map((selector) => formElement.querySelector(selector))
+        .find((field) => field);
+    };
+
+    const getCurrentContext = () => {
+      const activeTab = document.querySelector('.tab.is-active');
+      const tabName = activeTab ? activeTab.dataset.tab : 'basicos';
+      if (tabName === 'inseguras') return 'pratica';
+      if (tabName === 'basicos') return 'basico';
+      return '';
+    };
+
+    const validateRequired = (context) => {
+      const resolvedContext = context === 'currentTab' ? getCurrentContext() : context;
+      const fields = REQUIRED_FIELDS[resolvedContext] || [];
+      const missing = [];
+
+      fields.forEach(({ label, selectors }) => {
+        const field = getFieldBySelectors(selectors);
+        if (!field) return;
+        const value = typeof field.value === 'string' ? field.value.trim() : field.value;
+        if (!value || value === 'Selecione') {
+          missing.push(label);
+        }
+      });
+
+      return { ok: missing.length === 0, missing };
+    };
+
+    const showRequiredModal = (missing) => {
+      if (!requiredModal) return;
+      if (requiredFieldsList) {
+        requiredFieldsList.innerHTML = '';
+        if (missing && missing.length > 0) {
+          missing.forEach((label) => {
+            const li = document.createElement('li');
+            li.textContent = label;
+            requiredFieldsList.appendChild(li);
+          });
+          requiredFieldsList.classList.remove('d-none');
+        } else {
+          requiredFieldsList.classList.add('d-none');
+        }
+      }
+      requiredModal.show();
+    };
+
+    document.querySelectorAll('.tab').forEach((tab) => {
+      tab.addEventListener(
+        'click',
+        (event) => {
+          if (tab.classList.contains('is-disabled')) {
+            return;
+          }
+          const activeTab = document.querySelector('.tab.is-active');
+          if (activeTab && activeTab !== tab) {
+            const result = validateRequired('currentTab');
+            if (!result.ok) {
+              event.preventDefault();
+              event.stopImmediatePropagation();
+              showRequiredModal(result.missing);
+            }
+          }
+        },
+        true
+      );
+    });
+
+    const addButton = document.getElementById('add-btn');
+    if (addButton) {
+      addButton.addEventListener(
+        'click',
+        (event) => {
+          const result = validateRequired('currentTab');
+          if (!result.ok) {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            showRequiredModal(result.missing);
+          }
+        },
+        true
+      );
+    }
   </script>
   <script src="assets/js/app.js"></script>
 </body>
