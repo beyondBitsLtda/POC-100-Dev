@@ -133,20 +133,25 @@
           <input type="hidden" id="tipoInsegura" value="PRATICA" />
           <div class="unsafe-layout">
             <div class="unsafe-practices">
-              <p><strong>Categorias*</strong></p>
-              <ul class="practice-list" id="practice-list"></ul>
-            </div>
-            <div class="unsafe-fields">
+              <label><strong>Tipo de Registro*</strong>
+                <select id="tipoInsegura" required>
+                  <option value="">Selecione</option>
+                  <option value="PRATICA">Prática Insegura</option>
+                  <option value="CONDICAO">Condição Insegura</option>
+                </select>
+              </label>
               <label><strong>Categoria*</strong>
-                <select id="categoriaSelect" required>
+                <select id="categoriaInseguraSelect" required disabled>
                   <option value="">Selecione</option>
                 </select>
               </label>
               <label><strong>Subcategoria*</strong>
-                <select id="subcategoriaSelect" required>
+                <select id="subcategoriaInseguraSelect" required disabled>
                   <option value="">Selecione</option>
                 </select>
               </label>
+            </div>
+            <div class="unsafe-fields">
               <label><strong>Quem foi observado?*</strong>
                 <select id="observado" required>
                   <option value="">Selecione</option>
@@ -541,9 +546,8 @@
       };
 
       const $tipoInsegura = $('#tipoInsegura');
-      const $tipoInseguraRadios = $('input[name="tipoInseguraRadio"]');
-      const $categoriaSelect = $('#categoriaSelect');
-      const $subcategoriaSelect = $('#subcategoriaSelect');
+      const $categoriaSelect = $('#categoriaInseguraSelect');
+      const $subcategoriaSelect = $('#subcategoriaInseguraSelect');
 
       resetSelect(setorSelect, 'Selecione', true);
       resetSelect(subsetorSelect, 'Selecione', true);
@@ -591,43 +595,43 @@
         }
       });
 
-      const handleTipoInseguraChange = (tipo) => {
-        renderSidebar(tipo);
-        fillSelect($categoriaSelect, Object.keys(INSEGURAS[tipo] || {}), 'Selecione');
-        resetSelect($subcategoriaSelect, 'Selecione', true);
-      };
-
-      // SELECT CASCADE
-      $categoriaSelect.on('change', () => {
-        const tipo = $tipoInsegura.val();
-        const categoria = $categoriaSelect.val();
-        const subcategorias = (INSEGURAS[tipo] && INSEGURAS[tipo][categoria]) || [];
-
-        if (!categoria) {
+      // TIPO → CATEGORIA
+      const populateCategorias = (tipo) => {
+        if (!tipo) {
+          resetSelect($categoriaSelect, 'Selecione', true);
           resetSelect($subcategoriaSelect, 'Selecione', true);
           return;
         }
 
+        const categorias = Object.keys(INSEGURAS[tipo] || {});
+        fillSelect($categoriaSelect, categorias, 'Selecione');
+        resetSelect($subcategoriaSelect, 'Selecione', true);
+      };
+
+      // CATEGORIA → SUBCATEGORIA
+      const populateSubcategorias = (tipo, categoria) => {
+        if (!tipo || !categoria) {
+          resetSelect($subcategoriaSelect, 'Selecione', true);
+          return;
+        }
+
+        const subcategorias = (INSEGURAS[tipo] && INSEGURAS[tipo][categoria]) || [];
         fillSelect($subcategoriaSelect, subcategorias, 'Selecione');
         if (subcategorias.length === 1) {
           $subcategoriaSelect.val(subcategorias[0]).trigger('change');
         }
+      };
+
+      $tipoInsegura.on('change', () => {
+        populateCategorias($tipoInsegura.val());
       });
 
-      $tipoInseguraRadios.on('change', () => {
-        const tipo = $tipoInseguraRadios.filter(':checked').val();
-        $tipoInsegura.val(tipo);
-        handleTipoInseguraChange(tipo);
+      $categoriaSelect.on('change', () => {
+        populateSubcategorias($tipoInsegura.val(), $categoriaSelect.val());
       });
 
-      $('#practice-list').on('click', '.subcategory-item', (event) => {
-        const $target = $(event.currentTarget);
-        const categoria = $target.data('categoria');
-        const subcategoria = $target.data('subcategoria');
-        applySidebarSelection($tipoInsegura.val(), categoria, subcategoria);
-      });
-
-      handleTipoInseguraChange($tipoInsegura.val());
+      resetSelect($categoriaSelect, 'Selecione', true);
+      resetSelect($subcategoriaSelect, 'Selecione', true);
     });
   </script>
   <script src="assets/js/app.js"></script>

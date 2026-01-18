@@ -4,8 +4,9 @@ const tabPanels = document.querySelectorAll('.tab-panel');
 const addBtn = document.getElementById('add-btn');
 const viewButtons = document.querySelectorAll('[data-view]');
 const viewPanels = document.querySelectorAll('[data-view-panel]');
-const categoriaSelect = document.getElementById('categoriaSelect');
-const subcategoriaSelect = document.getElementById('subcategoriaSelect');
+const tipoInseguraSelect = document.getElementById('tipoInsegura');
+const categoriaSelect = document.getElementById('categoriaInseguraSelect');
+const subcategoriaSelect = document.getElementById('subcategoriaInseguraSelect');
 const consultarBtn = document.getElementById('consultar-btn');
 const consultaResultado = document.getElementById('consulta-resultado');
 
@@ -21,6 +22,7 @@ const basicFields = [
 ];
 
 const unsafeFields = [
+  tipoInseguraSelect,
   categoriaSelect,
   subcategoriaSelect,
   document.getElementById('observado'),
