@@ -11,6 +11,111 @@
     crossorigin="anonymous"
   />
   <link rel="stylesheet" href="assets/css/style.css" />
+  <style>
+    .ai-toolbar {
+      border: 1px solid var(--cor-texto-claro);
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 20px;
+      display: grid;
+      gap: 16px;
+      background: var(--cor-cinza-fundo);
+    }
+
+    .ai-toolbar__actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .ai-gear {
+      border: 1px solid var(--cor-texto-claro);
+      background: var(--cor-cinza-fundo);
+      padding: 8px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      color: var(--cor-texto-escuro);
+    }
+
+    .ai-toolbar__inputs {
+      display: grid;
+      gap: 12px;
+    }
+
+    .ai-mode__buttons {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .ai-mode-btn {
+      border: 1px solid var(--cor-texto-claro);
+      background: var(--cor-cinza-fundo);
+      padding: 6px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      color: var(--cor-texto-escuro);
+    }
+
+    .ai-mode-btn.is-active {
+      background: var(--cor-primaria);
+      color: var(--cor-cinza-fundo);
+      border-color: var(--cor-primaria);
+    }
+
+    .ai-file-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 12px;
+    }
+
+    .ai-status {
+      margin: 0;
+      font-size: 0.9rem;
+      color: var(--cor-texto-claro);
+    }
+
+    .ai-options-panel {
+      border-top: 1px dashed var(--cor-texto-claro);
+      padding-top: 12px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .ai-toggle {
+      flex-direction: row;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .ai-options-actions {
+      display: flex;
+      justify-content: flex-start;
+    }
+
+    .ai-privacy {
+      font-size: 0.85rem;
+      color: var(--cor-texto-claro);
+      margin: 0;
+    }
+
+    .ai-log {
+      border-left: 4px solid var(--cor-texto-claro);
+      padding: 8px 12px;
+      background: #f7f7f7;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      color: var(--cor-texto-escuro);
+    }
+
+    .ai-log:empty {
+      display: none;
+    }
+  </style>
   <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
@@ -33,6 +138,44 @@
 
     <section class="view-panel is-active" data-view-panel="cadastrar">
       <form id="poc-form" novalidate>
+        <div class="ai-toolbar" aria-label="Assistente de preenchimento por IA">
+          <div class="ai-toolbar__actions">
+            <button type="button" id="ai-fill-btn" class="primary" disabled>Preencher cartão de POC</button>
+            <button type="button" id="ai-options-toggle" class="ai-gear" aria-expanded="false" aria-controls="ai-options-panel">⚙️ Opções IA</button>
+          </div>
+          <div class="ai-toolbar__inputs">
+            <div class="ai-mode">
+              <span class="ai-label"><strong>Origem das imagens</strong></span>
+              <div class="ai-mode__buttons" role="group" aria-label="Modo de captura">
+                <button type="button" class="ai-mode-btn" data-mode="camera">Câmera</button>
+                <button type="button" class="ai-mode-btn" data-mode="gallery">Galeria</button>
+              </div>
+            </div>
+            <div class="ai-file-grid">
+              <label>Frente do cartão
+                <input type="file" id="ai-front-file" accept="image/*" />
+              </label>
+              <label>Verso do cartão
+                <input type="file" id="ai-back-file" accept="image/*" />
+              </label>
+            </div>
+            <p id="ai-status" class="ai-status" aria-live="polite"></p>
+          </div>
+          <div id="ai-options-panel" class="ai-options-panel" hidden>
+            <label>Gemini API Key
+              <input type="password" id="ai-api-key" placeholder="Cole sua chave da API" autocomplete="off" />
+            </label>
+            <label class="ai-toggle">
+              <input type="checkbox" id="ai-enabled" />
+              Modo IA
+            </label>
+            <div class="ai-options-actions">
+              <button type="button" id="ai-save-settings" class="primary">Salvar</button>
+            </div>
+            <p class="ai-privacy">As imagens são enviadas ao Gemini para leitura e preenchimento; você pode desligar o modo IA quando quiser.</p>
+          </div>
+          <div id="ai-log" class="ai-log" aria-live="polite"></div>
+        </div>
         <div class="tabs" role="tablist">
           <button type="button" class="tab is-active" data-tab="basicos" role="tab" aria-selected="true">Dados Básicos</button>
           <button type="button" class="tab is-disabled" data-tab="inseguras" role="tab" aria-selected="false" aria-disabled="true">Práticas / Condição Inseguras</button>
