@@ -10,112 +10,7 @@
     integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
     crossorigin="anonymous"
   />
-  <link rel="stylesheet" href="assets/css/style.css" />
-  <style>
-    .ai-toolbar {
-      border: 1px solid var(--cor-texto-claro);
-      border-radius: 10px;
-      padding: 16px;
-      margin-bottom: 20px;
-      display: grid;
-      gap: 16px;
-      background: var(--cor-cinza-fundo);
-    }
-
-    .ai-toolbar__actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .ai-gear {
-      border: 1px solid var(--cor-texto-claro);
-      background: var(--cor-cinza-fundo);
-      padding: 8px 12px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-weight: 600;
-      color: var(--cor-texto-escuro);
-    }
-
-    .ai-toolbar__inputs {
-      display: grid;
-      gap: 12px;
-    }
-
-    .ai-mode__buttons {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    .ai-mode-btn {
-      border: 1px solid var(--cor-texto-claro);
-      background: var(--cor-cinza-fundo);
-      padding: 6px 10px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-weight: 600;
-      color: var(--cor-texto-escuro);
-    }
-
-    .ai-mode-btn.is-active {
-      background: var(--cor-primaria);
-      color: var(--cor-cinza-fundo);
-      border-color: var(--cor-primaria);
-    }
-
-    .ai-file-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: 12px;
-    }
-
-    .ai-status {
-      margin: 0;
-      font-size: 0.9rem;
-      color: var(--cor-texto-claro);
-    }
-
-    .ai-options-panel {
-      border-top: 1px dashed var(--cor-texto-claro);
-      padding-top: 12px;
-      display: grid;
-      gap: 12px;
-    }
-
-    .ai-toggle {
-      flex-direction: row;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .ai-options-actions {
-      display: flex;
-      justify-content: flex-start;
-    }
-
-    .ai-privacy {
-      font-size: 0.85rem;
-      color: var(--cor-texto-claro);
-      margin: 0;
-    }
-
-    .ai-log {
-      border-left: 4px solid var(--cor-texto-claro);
-      padding: 8px 12px;
-      background: #f7f7f7;
-      border-radius: 6px;
-      font-size: 0.85rem;
-      color: var(--cor-texto-escuro);
-    }
-
-    .ai-log:empty {
-      display: none;
-    }
-  </style>
+  <link rel="stylesheet" href="style.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
@@ -123,7 +18,7 @@
 <body>
   <header class="app-header">
     <div class="container header-content">
-      <img src="assets/css/logo.png" alt="Logo Wwin Safety" class="logo" />
+      <img src="logo.png" alt="Logo Wwin Safety" class="logo" />
       <divc class="header-title">
         <h1>P.O.C 100</h1>
       </div>
@@ -137,45 +32,7 @@
     </section>
 
     <section class="view-panel is-active" data-view-panel="cadastrar">
-      <form id="poc-form" novalidate>
-        <div class="ai-toolbar" aria-label="Assistente de preenchimento por IA">
-          <div class="ai-toolbar__actions">
-            <button type="button" id="ai-fill-btn" class="primary" disabled>Preencher cartão de POC</button>
-            <button type="button" id="ai-options-toggle" class="ai-gear" aria-expanded="false" aria-controls="ai-options-panel">⚙️ Opções IA</button>
-          </div>
-          <div class="ai-toolbar__inputs">
-            <div class="ai-mode">
-              <span class="ai-label"><strong>Origem das imagens</strong></span>
-              <div class="ai-mode__buttons" role="group" aria-label="Modo de captura">
-                <button type="button" class="ai-mode-btn" data-mode="camera">Câmera</button>
-                <button type="button" class="ai-mode-btn" data-mode="gallery">Galeria</button>
-              </div>
-            </div>
-            <div class="ai-file-grid">
-              <label>Frente do cartão
-                <input type="file" id="ai-front-file" accept="image/*" />
-              </label>
-              <label>Verso do cartão
-                <input type="file" id="ai-back-file" accept="image/*" />
-              </label>
-            </div>
-            <p id="ai-status" class="ai-status" aria-live="polite"></p>
-          </div>
-          <div id="ai-options-panel" class="ai-options-panel" hidden>
-            <label>Gemini API Key
-              <input type="password" id="ai-api-key" placeholder="Cole sua chave da API" autocomplete="off" />
-            </label>
-            <label class="ai-toggle">
-              <input type="checkbox" id="ai-enabled" />
-              Modo IA
-            </label>
-            <div class="ai-options-actions">
-              <button type="button" id="ai-save-settings" class="primary">Salvar</button>
-            </div>
-            <p class="ai-privacy">As imagens são enviadas ao Gemini para leitura e preenchimento; você pode desligar o modo IA quando quiser.</p>
-          </div>
-          <div id="ai-log" class="ai-log" aria-live="polite"></div>
-        </div>
+      <form id="poc-form">
         <div class="tabs" role="tablist">
           <button type="button" class="tab is-active" data-tab="basicos" role="tab" aria-selected="true">Dados Básicos</button>
           <button type="button" class="tab is-disabled" data-tab="inseguras" role="tab" aria-selected="false" aria-disabled="true">Práticas / Condição Inseguras</button>
@@ -203,7 +60,7 @@
                 <option value="">Selecione</option>
               </select>
             </label>
-            <label><strong>Observador*</strong>
+            <label><strong>Observador*</strong> 
               <select id="observador" required>
                 <option value="">Selecione</option>
                 <option value="davi">Davi</option>
@@ -262,17 +119,58 @@
 
         <div class="tab-panel" data-tab-panel="inseguras" role="tabpanel">
           <h2>Práticas / Condição Inseguras</h2>
+
+          <!-- IA (OCR + interpretação) - aparece apenas nas abas Inseguras / Seguras -->
+          <div class="ai-toolbar" data-ai-toolbar>
+            <button type="button" id="poc-ai-fill-btn" class="secondary" aria-label="Preencher cartão de POC com IA" disabled>
+              Preencher cartão de POC
+            </button>
+            <button type="button" id="poc-ai-settings-btn" class="icon" aria-label="Opções IA" title="Opções IA">
+              ⚙️
+            </button>
+          </div>
+          <div id="poc-ai-log" class="ai-log" aria-live="polite"></div>
+          <fieldset class="radio-group">
+            <legend><strong>Tipo de Registro*</strong></legend>
+            <label>
+              <input type="radio" name="tipoInsegura" value="PRATICA" required />
+              Prática Insegura
+            </label>
+            <label>
+              <input type="radio" name="tipoInsegura" value="CONDICAO" required />
+              Condição Insegura
+            </label>
+          </fieldset>
           <div class="unsafe-layout">
-            <div class="unsafe-fields">
+            <div class="unsafe-practices">
               <label><strong>Categoria*</strong>
-                <select id="categoriaInseguraSelect" required>
+                <select id="categoriaInseguraSelect" required disabled>
                   <option value="">Selecione</option>
                 </select>
               </label>
               <label><strong>Subcategoria*</strong>
-                <select id="subcategoriaInseguraSelect" required>
+                <select id="subcategoriaInseguraSelect" required disabled>
                   <option value="">Selecione</option>
                 </select>
+              </label>
+            </div>
+            <div class="unsafe-fields">
+              <label><strong>Quem foi observado?*</strong>
+                <select id="observado" required>
+                  <option value="">Selecione</option>
+                  <option value="colaborador">Colaborador</option>
+                  <option value="terceiro">Terceiro</option>
+                  <option value="visitante">Visitante</option>
+                </select>
+              </label>
+              <label><strong>Quantidade*</strong>
+                <input type="number" id="quantidade" min="1" required />
+              </label>
+              <label><strong>Prática Insegura*</strong>
+                <textarea id="pratica-insegura" rows="3" required></textarea>
+              </label>
+              <label><strong>Ação Recomendada*</strong>
+                <textarea id="acao-recomendada" rows="3" required></textarea>
               </label>
             </div>
           </div>
@@ -280,6 +178,17 @@
 
         <div class="tab-panel" data-tab-panel="seguras" role="tabpanel">
           <h2>Reconhecimento de Prática Segura</h2>
+
+          <!-- IA (OCR + interpretação) - aparece apenas nas abas Inseguras / Seguras -->
+          <div class="ai-toolbar" data-ai-toolbar>
+            <button type="button" id="poc-ai-fill-btn-safe" class="secondary" aria-label="Preencher cartão de POC com IA" disabled>
+              Preencher cartão de POC
+            </button>
+            <button type="button" id="poc-ai-settings-btn-safe" class="icon" aria-label="Opções IA" title="Opções IA">
+              ⚙️
+            </button>
+          </div>
+          <div id="poc-ai-log-safe" class="ai-log" aria-live="polite"></div>
           <label><strong>Reconhecimento do Trabalho Seguro*</strong>
             <textarea id="reconhecimento" rows="4" required></textarea>
           </label>
@@ -292,6 +201,70 @@
           <button type="button" id="add-btn" class="primary" disabled>Adicionar</button>
         </div>
       </form>
+
+      <!-- MODAL: Opções IA -->
+      <div class="modal fade" id="pocAiSettingsModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">Opções IA</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+              <div class="mb-3">
+                <label for="pocAiApiKey" class="form-label"><strong>Gemini API Key</strong></label>
+                <input type="password" class="form-control" id="pocAiApiKey" placeholder="Cole sua API Key" autocomplete="off" />
+                <div class="form-text">A chave fica salva apenas no seu navegador (localStorage).</div>
+              </div>
+              <div class="form-check form-switch mb-2">
+                <input class="form-check-input" type="checkbox" role="switch" id="pocAiEnabled" />
+                <label class="form-check-label" for="pocAiEnabled"><strong>Modo IA</strong> (OCR + preenchimento)</label>
+              </div>
+              <div class="small text-muted">
+                As imagens do cartão (frente/verso) serão enviadas ao Gemini para leitura e preenchimento. Você pode desligar quando quiser.
+              </div>
+              <div id="pocAiSettingsStatus" class="ai-status" aria-live="polite"></div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+              <button type="button" class="btn btn-primary" id="pocAiSaveSettings">Salvar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MODAL: Preencher Cartão -->
+      <div class="modal fade" id="pocAiFillModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">Preencher cartão de POC</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+              <div class="ai-mode">
+                <button type="button" class="btn btn-outline-secondary" id="pocAiModeCamera">Câmera</button>
+                <button type="button" class="btn btn-outline-secondary" id="pocAiModeGallery">Galeria</button>
+              </div>
+              <div class="ai-file-grid">
+                <div>
+                  <label class="form-label"><strong>Frente*</strong></label>
+                  <input type="file" class="form-control" id="pocAiFront" accept="image/*" />
+                </div>
+                <div>
+                  <label class="form-label"><strong>Verso*</strong></label>
+                  <input type="file" class="form-control" id="pocAiBack" accept="image/*" />
+                </div>
+              </div>
+              <div id="pocAiFillStatus" class="ai-status" aria-live="polite"></div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+              <button type="button" class="btn btn-primary" id="pocAiRun">Ler e preencher</button>
+            </div>
+          </div>
+        </div>
+      </div>
     </section>
 
     <section class="view-panel" data-view-panel="consultar">
@@ -382,27 +355,6 @@
     </section>
   </main>
 
-  <div class="modal fade" id="requiredFieldsModal" tabindex="-1" aria-labelledby="requiredFieldsModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="requiredFieldsModalLabel">Campos obrigatórios</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
-        </div>
-        <div class="modal-body">
-          <p>
-            Para continuar, preencha todos os campos obrigatórios (*) da etapa atual.
-            Depois disso, você poderá avançar de aba ou clicar em Adicionar.
-          </p>
-          <ul id="requiredFieldsList" class="mb-0 d-none"></ul>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Entendi</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <script
     src="https://code.jquery.com/jquery-3.7.1.min.js"
     integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo="
@@ -414,6 +366,68 @@
     crossorigin="anonymous"
   ></script>
   <script>
+    // INSEGURAS DATA
+    const PRATICA = {
+      'A. Reação das Pessoas': [
+        'A.1 Mudança de Posição',
+        'A.2 Parando o Serviço',
+        'A.3 Ajustando o EPI',
+        'A.4 Adequando o Serviço'
+      ],
+      'B. Posição das Pessoas': [
+        'B.1 Bater Contra / Ser Atingido por',
+        'B.2 Ficar Preso',
+        'B.3 Risco de Queda',
+        'B.4 Risco de Queimadura',
+        'B.5 Risco de Choque Elétrico',
+        'B.6 Inalar Contaminante',
+        'B.7 Absorver Contaminantes',
+        'B.8 Ingerir Contaminantes',
+        'B.9 Postura Inadequada',
+        'B.10 Esforço Inadequado'
+      ],
+      'C. EPIs': [
+        'C.1 Cabeça',
+        'C.2 Sistema Respiratório',
+        'C.3 Olhos e Rosto',
+        'C.4 Ouvidos',
+        'C.5 Mãos e Braços',
+        'C.6 Tronco',
+        'C.7 Pés e Pernas'
+      ],
+      'D. Ferramentas e Equipamentos': [
+        'D.1 Impróprias para o Serviço',
+        'D.2 Usadas Incorretamente',
+        'D.3 Em Condições Inseguras'
+      ],
+      'E. Procedimentos': [
+        'E.1 Inadequados',
+        'E.2 Não Existem Procedimentos Escritos',
+        'E.3 Adequados e Não Seguidos'
+      ],
+      'F. Ordem, Limpeza e Arrumação': [
+        'F.1 Local Sujo',
+        'F.2 Local Desorganizado',
+        'F.3 Local com Vazamento e Poluição Ambiental'
+      ]
+    };
+
+    const CONDICAO = {
+      'CI. Ambiente / Área': [
+        'CI.1 Piso irregular / escorregadio',
+        'CI.2 Iluminação inadequada',
+        'CI.3 Sinalização ausente / falha'
+      ],
+      'CI. Equipamentos / Estruturas': [
+        'CI.4 Proteções ausentes',
+        'CI.5 Falha mecânica aparente',
+        'CI.6 Vazamento / risco físico'
+      ]
+    };
+    // TODO: substituir CONDICAO quando lista oficial chegar.
+
+    const INSEGURAS = { PRATICA, CONDICAO };
+
     const MAP = {
       Vespasiano: {
         Administrativo: [
@@ -530,51 +544,6 @@
       }
     };
 
-    const PRATICA = {
-      'A. Reação das Pessoas': [
-        'A.1 Mudança de Posição',
-        'A.2 Parando o Serviço',
-        'A.3 Ajustando o EPI',
-        'A.4 Adequando o Serviço'
-      ],
-      'B. Posição das Pessoas': [
-        'B.1 Bater Contra / Ser Atingido por',
-        'B.2 Ficar Preso',
-        'B.3 Risco de Queda',
-        'B.4 Risco de Queimadura',
-        'B.5 Risco de Choque Elétrico',
-        'B.6 Inalar Contaminante',
-        'B.7 Absorver Contaminantes',
-        'B.8 Ingerir Contaminantes',
-        'B.9 Postura Inadequada',
-        'B.10 Esforço Inadequado'
-      ],
-      'C. EPIs': [
-        'C.1 Cabeça',
-        'C.2 Sistema Respiratório',
-        'C.3 Olhos e Rosto',
-        'C.4 Ouvidos',
-        'C.5 Mãos e Braços',
-        'C.6 Tronco',
-        'C.7 Pés e Pernas'
-      ],
-      'D. Ferramentas e Equipamentos': [
-        'D.1 Impróprias para o Serviço',
-        'D.2 Usadas Incorretamente',
-        'D.3 Em Condições Inseguras'
-      ],
-      'E. Procedimentos': [
-        'E.1 Inadequados',
-        'E.2 Não Existem Procedimentos Escritos',
-        'E.3 Adequados e Não Seguidos'
-      ],
-      'F. Ordem, Limpeza e Arrumação': [
-        'F.1 Local Sujo',
-        'F.2 Local Desorganizado',
-        'F.3 Local com Vazamento e Poluição Ambiental'
-      ]
-    };
-
     const resolveUnitMap = (unit) => {
       if (!unit) return null;
       const unitMap = MAP[unit];
@@ -585,39 +554,86 @@
       return unitMap;
     };
 
-    const resetSelect = (select, disabled = true) => {
+    const resetSelect = (select, placeholder = 'Selecione', disabled = true) => {
       select.empty();
-      select.append(new Option('Selecione', ''));
+      select.append(new Option(placeholder, ''));
       select.prop('disabled', disabled);
     };
 
-    const fillSelect = (select, items = []) => {
-      resetSelect(select, false);
+    const fillSelect = (select, items = [], placeholder = 'Selecione') => {
+      resetSelect(select, placeholder, false);
       items.forEach((item) => {
         select.append(new Option(item, item));
       });
+    };
+
+    // SIDEBAR RENDER
+    const renderSidebar = (tipo) => {
+      const $sidebar = $('#practice-list');
+      $sidebar.empty();
+
+      const categorias = INSEGURAS[tipo] || {};
+      Object.entries(categorias).forEach(([categoria, subcategorias]) => {
+        const $categoryItem = $('<li></li>');
+        const $details = $('<details class="category-item" open></details>');
+        const $summary = $(`<summary>${categoria}</summary>`);
+        const $subList = $('<ul class="subcategory-list"></ul>');
+
+        subcategorias.forEach((subcategoria) => {
+          const $subItem = $(`
+            <li>
+              <button
+                type="button"
+                class="subcategory-item"
+                data-categoria="${categoria}"
+                data-subcategoria="${subcategoria}"
+              >${subcategoria}</button>
+            </li>
+          `);
+          $subList.append($subItem);
+        });
+
+        $details.append($summary, $subList);
+        $categoryItem.append($details);
+        $sidebar.append($categoryItem);
+      });
+    };
+
+    // AUTOFILL FROM SIDEBAR
+    const applySidebarSelection = (tipo, categoria, subcategoria) => {
+      const $categoriaSelect = $('#categoriaSelect');
+      const $subcategoriaSelect = $('#subcategoriaSelect');
+
+      $categoriaSelect.val(categoria).trigger('change');
+      $subcategoriaSelect.val(subcategoria).trigger('change');
     };
 
     $(document).ready(() => {
       const unidadeSelect = $('#unidadeSelect');
       const setorSelect = $('#setorSelect');
       const subsetorSelect = $('#subsetorSelect');
-      const categoriaInseguraSelect = $('#categoriaInseguraSelect');
-      const subcategoriaInseguraSelect = $('#subcategoriaInseguraSelect');
+      const observadorSelect = $('#poc-form #observador');
 
-      resetSelect(setorSelect, true);
-      resetSelect(subsetorSelect, true);
-      resetSelect(categoriaInseguraSelect, false);
-      resetSelect(subcategoriaInseguraSelect, true);
+      const applySelectionChain = ({ unidade, setor, subsetor }) => {
+        unidadeSelect.val(unidade).trigger('change');
+        setTimeout(() => {
+          setorSelect.val(setor).trigger('change');
+          setTimeout(() => {
+            subsetorSelect.val(subsetor);
+          }, 0);
+        }, 0);
+      };
 
-      Object.keys(PRATICA).forEach((categoria) => {
-        categoriaInseguraSelect.append(new Option(categoria, categoria));
-      });
+      const $categoriaSelect = $('#categoriaInseguraSelect');
+      const $subcategoriaSelect = $('#subcategoriaInseguraSelect');
+
+      resetSelect(setorSelect, 'Selecione', true);
+      resetSelect(subsetorSelect, 'Selecione', true);
 
       unidadeSelect.on('change', () => {
         const unidade = unidadeSelect.val();
-        resetSelect(setorSelect, true);
-        resetSelect(subsetorSelect, true);
+        resetSelect(setorSelect, 'Selecione', true);
+        resetSelect(subsetorSelect, 'Selecione', true);
 
         const unitMap = resolveUnitMap(unidade);
         if (!unitMap) return;
@@ -627,140 +643,85 @@
       setorSelect.on('change', () => {
         const unidade = unidadeSelect.val();
         const setor = setorSelect.val();
-        resetSelect(subsetorSelect, true);
+        resetSelect(subsetorSelect, 'Selecione', true);
 
         const unitMap = resolveUnitMap(unidade);
         if (!unitMap || !setor) return;
-        fillSelect(subsetorSelect, unitMap[setor] || []);
-      });
-
-      categoriaInseguraSelect.on('change', () => {
-        const categoria = categoriaInseguraSelect.val();
-        const subs = PRATICA[categoria] || [];
-        resetSelect(subcategoriaInseguraSelect, true);
-        subs.forEach((subcategoria) => {
-          subcategoriaInseguraSelect.append(new Option(subcategoria, subcategoria));
-        });
-        if (subs.length > 0) {
-          subcategoriaInseguraSelect.prop('disabled', false);
-          if (subs.length === 1) {
-            subcategoriaInseguraSelect.val(subs[0]);
-          }
-        }
-      });
-    });
-  </script>
-  <script>
-    const formElement = document.getElementById('poc-form');
-    const requiredModalElement = document.getElementById('requiredFieldsModal');
-    const requiredFieldsList = document.getElementById('requiredFieldsList');
-    const requiredModal = requiredModalElement ? new bootstrap.Modal(requiredModalElement) : null;
-
-    const REQUIRED_FIELDS = {
-      basico: [
-        { label: 'Unidade', selectors: ['#unidadeSelect', '[name="unidade"]'] },
-        { label: 'Setor', selectors: ['#setorSelect', '[name="setor"]'] },
-        { label: 'Subsetor', selectors: ['#subsetorSelect', '[name="subsetor"]'] },
-        { label: 'Observador', selectors: ['#observadorSelect', '#observador', '[name="observador"]'] },
-        { label: 'Data', selectors: ['#dataInput', '#data', '[name="data"]'] },
-        { label: 'Hora início', selectors: ['#horaInicioInput', '#hora', '[name="horaInicio"]'] },
-        { label: 'Hora fim', selectors: ['#horaFimInput', '[name="horaFim"]'] },
-        { label: 'Pessoas observadas', selectors: ['#pessoasObservadasInput', '#pessoas-observadas', '[name="pessoasObservadas"]'] },
-        { label: 'Pessoas na área', selectors: ['#pessoasNaAreaInput', '#pessoas-area', '[name="pessoasNaArea"]'] }
-      ],
-      pratica: [
-        { label: 'Categoria', selectors: ['#categoriaInseguraSelect', '[name="categoriaInsegura"]'] },
-        { label: 'Subcategoria', selectors: ['#subcategoriaInseguraSelect', '[name="subcategoriaInsegura"]'] }
-      ]
-    };
-
-    const getFieldBySelectors = (selectors) => {
-      if (!formElement) return null;
-      return selectors
-        .map((selector) => formElement.querySelector(selector))
-        .find((field) => field);
-    };
-
-    const getCurrentContext = () => {
-      const activeTab = document.querySelector('.tab.is-active');
-      const tabName = activeTab ? activeTab.dataset.tab : 'basicos';
-      if (tabName === 'inseguras') return 'pratica';
-      if (tabName === 'basicos') return 'basico';
-      return '';
-    };
-
-    const validateRequired = (context) => {
-      const resolvedContext = context === 'currentTab' ? getCurrentContext() : context;
-      const fields = REQUIRED_FIELDS[resolvedContext] || [];
-      const missing = [];
-
-      fields.forEach(({ label, selectors }) => {
-        const field = getFieldBySelectors(selectors);
-        if (!field) return;
-        const value = typeof field.value === 'string' ? field.value.trim() : field.value;
-        if (!value || value === 'Selecione') {
-          missing.push(label);
+        const subsetores = unitMap[setor] || [];
+        fillSelect(subsetorSelect, subsetores);
+        // AUTOSELEÇÃO SUBSETOR ÚNICO
+        if (subsetores.length === 1) {
+          subsetorSelect.val(subsetores[0]);
         }
       });
 
-      return { ok: missing.length === 0, missing };
-    };
+      // PRESELEÇÃO OBSERVADOR BRAYAN
+      observadorSelect.val('brayan');
+      applySelectionChain({
+        unidade: 'Vespasiano',
+        setor: 'Administrativo',
+        subsetor: 'TI'
+      });
 
-    const showRequiredModal = (missing) => {
-      if (!requiredModal) return;
-      if (requiredFieldsList) {
-        requiredFieldsList.innerHTML = '';
-        if (missing && missing.length > 0) {
-          missing.forEach((label) => {
-            const li = document.createElement('li');
-            li.textContent = label;
-            requiredFieldsList.appendChild(li);
+      observadorSelect.on('change', () => {
+        if (observadorSelect.val() === 'brayan') {
+          applySelectionChain({
+            unidade: 'Vespasiano',
+            setor: 'Administrativo',
+            subsetor: 'TI'
           });
-          requiredFieldsList.classList.remove('d-none');
-        } else {
-          requiredFieldsList.classList.add('d-none');
         }
+      });
+
+      const getTipoSelecionado = () => {
+        return $('input[name="tipoInsegura"]:checked').val() || '';
+      };
+
+      // TIPO → CATEGORIA
+      const populateCategorias = (tipo) => {
+        if (!tipo) {
+          resetSelect($categoriaSelect, 'Selecione', true);
+          resetSelect($subcategoriaSelect, 'Selecione', true);
+          return;
+        }
+
+        const categorias = Object.keys(INSEGURAS[tipo] || {});
+        fillSelect($categoriaSelect, categorias, 'Selecione');
+        resetSelect($subcategoriaSelect, 'Selecione', true);
+        $categoriaSelect.prop('disabled', false);
+      };
+
+      // CATEGORIA → SUBCATEGORIA
+      const populateSubcategorias = (tipo, categoria) => {
+        if (!tipo || !categoria) {
+          resetSelect($subcategoriaSelect, 'Selecione', true);
+          return;
+        }
+
+        const subcategorias = (INSEGURAS[tipo] && INSEGURAS[tipo][categoria]) || [];
+        fillSelect($subcategoriaSelect, subcategorias, 'Selecione');
+        $subcategoriaSelect.prop('disabled', false);
+        if (subcategorias.length === 1) {
+          $subcategoriaSelect.val(subcategorias[0]).trigger('change');
+        }
+      };
+
+      $('input[name="tipoInsegura"]').on('change', () => {
+        populateCategorias(getTipoSelecionado());
+      });
+
+      $categoriaSelect.on('change', () => {
+        populateSubcategorias(getTipoSelecionado(), $categoriaSelect.val());
+      });
+
+      resetSelect($categoriaSelect, 'Selecione', true);
+      resetSelect($subcategoriaSelect, 'Selecione', true);
+      const tipoInicial = getTipoSelecionado();
+      if (tipoInicial) {
+        populateCategorias(tipoInicial);
       }
-      requiredModal.show();
-    };
-
-    document.querySelectorAll('.tab').forEach((tab) => {
-      tab.addEventListener(
-        'click',
-        (event) => {
-          if (tab.classList.contains('is-disabled')) {
-            return;
-          }
-          const activeTab = document.querySelector('.tab.is-active');
-          if (activeTab && activeTab !== tab) {
-            const result = validateRequired('currentTab');
-            if (!result.ok) {
-              event.preventDefault();
-              event.stopImmediatePropagation();
-              showRequiredModal(result.missing);
-            }
-          }
-        },
-        true
-      );
     });
-
-    const addButton = document.getElementById('add-btn');
-    if (addButton) {
-      addButton.addEventListener(
-        'click',
-        (event) => {
-          const result = validateRequired('currentTab');
-          if (!result.ok) {
-            event.preventDefault();
-            event.stopImmediatePropagation();
-            showRequiredModal(result.missing);
-          }
-        },
-        true
-      );
-    }
   </script>
-  <script src="assets/js/app.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
