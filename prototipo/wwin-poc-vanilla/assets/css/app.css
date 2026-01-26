@@ -11,7 +11,7 @@ body {
 .app-header {
   background: var(--cor-primaria);
   color: var(--cor-cinza-fundo);
-  padding: 8px 0;
+  padding: 24px 0;
 }
 
 .header-content {
@@ -21,9 +21,16 @@ body {
 }
 
 .logo {
-  width: 200px;
+  width: 64px;
   height: auto;
-  margin-right: 30px;
+}
+
+.app-eyebrow {
+  margin: 0;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--cor-cinza-fundo);
 }
 
 .app-header h1 {
@@ -228,70 +235,4 @@ button.primary:disabled {
 .result-table thead {
   background: var(--cor-primaria);
   color: var(--cor-cinza-fundo);
-}
-
-.header-title {
-  font-size: 1.5rem;
-}
-
-:root {
-  --cor-primaria: #CB0F10;
-  --cor-cinza-fundo: #f0f0f0;
-  --cor-texto-escuro: #212529;
-  --cor-texto-claro: #495057;
-  --cor-botao-secundario: #6c757d;
-  --cor-aviso: #ffc107;
-  --cor-status-aprovado: #28a745;
-  --cor-status-reprovado: #dc3545;
-  --cor-status-invalido: #6c757d;
-  --wwin-primary: var(--cor-primaria);
-  --wwin-secondary: #0f7b6c;
-  --wwin-bg: var(--cor-cinza-fundo);
-  --wwin-text: var(--cor-texto-escuro);
-}
-
-body {
-  font-family: "Barlow", sans-serif;
-  background: var(--wwin-bg);
-  color: var(--wwin-text);
-}
-
-.wwin-header {
-  color: var(--wwin-primary);
-  font-weight: 600;
-}
-
-.btn-primary {
-  background-color: var(--wwin-primary);
-  border-color: var(--wwin-primary);
-}
-
-.btn-secondary {
-  background-color: var(--cor-botao-secundario);
-  border-color: var(--cor-botao-secundario);
-}
-
-.badge-secondary {
-  background-color: var(--wwin-secondary);
-}
-
-.wwin-header-bar {
-  background-color: var(--cor-primaria);
-  color: #fff;
-}
-
-.wwin-header-bar .wwin-title {
-  font-weight: 700;
-}
-
-.radio-group {
-  margin-bottom: 20px;
-}
-
-label {
-  margin-bottom: 15px;
-}
-
-input:required:user-invalid {
-  border: 2px solid red
 }
