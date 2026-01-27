@@ -224,6 +224,8 @@ window.PocAI.run = async function () {
   const front = document.getElementById('pocAiFront');
   const back = document.getElementById('pocAiBack');
   const status = document.getElementById('pocAiFillStatus');
+  const progress = document.getElementById('pocAiProgress');
+  const error = document.getElementById('pocAiError');
   const runBtn = document.getElementById('pocAiRun');
 
   if (!front?.files?.length || !back?.files?.length) {
@@ -231,23 +233,92 @@ window.PocAI.run = async function () {
     return;
   }
 
+  if (!window.Tesseract) {
+    status.textContent = 'Biblioteca OCR indisponível. Recarregue a página.';
+    return;
+  }
+
   if (runBtn) {
     runBtn.disabled = true;
   }
 
+  if (error) {
+    error.classList.add('d-none');
+    error.textContent = '';
+  }
+  if (progress) {
+    progress.classList.remove('d-none');
+    progress.textContent = 'Preparando leitura OCR…';
+  }
+
   status.textContent = 'Enviando imagens para leitura por IA…';
 
-  // Aqui entra o pipeline Gemini (já existente no projeto)
-  // Este stub apenas confirma o fluxo correto
-  setTimeout(() => {
-    status.textContent = 'Imagens recebidas. Interpretando conteúdo…';
-    setTimeout(() => {
-      status.textContent = 'Leitura concluída. Pronto para preencher o formulário.';
-      if (runBtn) {
-        runBtn.disabled = false;
+  const readFileAsDataUrl = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(new Error('Falha ao ler imagem.'));
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const recognizeImage = async (file, label) => {
+    const imageData = await readFileAsDataUrl(file);
+    const result = await window.Tesseract.recognize(imageData, 'por', {
+      logger: (message) => {
+        if (progress && message.status) {
+          const pct = Math.round((message.progress || 0) * 100);
+          progress.textContent = `${label}: ${message.status} ${pct}%`;
+        }
       }
-    }, 1200);
-  }, 800);
+    });
+    return result?.data?.text || '';
+  };
+
+  try {
+    status.textContent = 'Imagens recebidas. Interpretando conteúdo…';
+    const [frontText, backText] = await Promise.all([
+      recognizeImage(front.files[0], 'Frente'),
+      recognizeImage(back.files[0], 'Verso')
+    ]);
+
+    const combinedText = [frontText, backText].map((text) => text.trim()).filter(Boolean).join('\n\n');
+    const selectedType = getSelectedType();
+
+    if (selectedType === 'insegura') {
+      const pratica = document.getElementById('pratica-insegura');
+      const acao = document.getElementById('acao-recomendada');
+      if (pratica && !pratica.value.trim()) {
+        pratica.value = combinedText || frontText || backText;
+      }
+      if (acao && !acao.value.trim()) {
+        acao.value = combinedText || frontText || backText;
+      }
+    }
+
+    if (selectedType === 'segura') {
+      const reconhecimento = document.getElementById('reconhecimento');
+      if (reconhecimento && !reconhecimento.value.trim()) {
+        reconhecimento.value = combinedText || frontText || backText;
+      }
+    }
+
+    updateUI();
+    status.textContent = 'Leitura concluída. Campos preenchidos com OCR.';
+  } catch (err) {
+    if (error) {
+      error.classList.remove('d-none');
+      error.textContent = err?.message || 'Erro ao ler imagens.';
+    }
+    status.textContent = 'Não foi possível interpretar as imagens.';
+  } finally {
+    if (progress) {
+      progress.classList.add('d-none');
+    }
+    if (runBtn) {
+      runBtn.disabled = false;
+    }
+  }
 };
 
 document.addEventListener('DOMContentLoaded', () => {
