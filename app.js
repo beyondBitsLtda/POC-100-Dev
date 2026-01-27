@@ -227,6 +227,12 @@ window.PocAI.run = async function () {
   const progress = document.getElementById('pocAiProgress');
   const error = document.getElementById('pocAiError');
   const runBtn = document.getElementById('pocAiRun');
+  const log = document.getElementById('pocAiLog');
+  const recognized = {
+    frontText: '',
+    backText: '',
+    combinedText: ''
+  };
 
   if (!front?.files?.length || !back?.files?.length) {
     status.textContent = 'Selecione a frente e o verso do cartão.';
@@ -237,6 +243,173 @@ window.PocAI.run = async function () {
     status.textContent = 'Biblioteca OCR indisponível. Recarregue a página.';
     return;
   }
+
+  const logStep = (message) => {
+    if (!log) return;
+    const entry = document.createElement('div');
+    entry.textContent = message;
+    log.appendChild(entry);
+    log.scrollTop = log.scrollHeight;
+  };
+
+  const clearLog = () => {
+    if (!log) return;
+    log.textContent = '';
+  };
+
+  const normalizeOcrText = (text) => {
+    return text
+      .replace(/\r\n/g, '\n')
+      .replace(/[ \t]+/g, ' ')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+  };
+
+  const cleanTextField = (text) => {
+    const lines = normalizeOcrText(text)
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean);
+    const unique = [...new Set(lines)];
+    return unique.join('\n');
+  };
+
+  const getAiSettings = () => {
+    const apiKey = localStorage.getItem('pocAiApiKey') || '';
+    const enabled = localStorage.getItem('pocAiEnabled') === 'true';
+    return { apiKey, enabled };
+  };
+
+  const waitForOptions = (select, minOptions = 2, timeout = 1500) => {
+    return new Promise((resolve) => {
+      const start = Date.now();
+      const check = () => {
+        if (select?.options?.length >= minOptions) {
+          resolve(true);
+          return;
+        }
+        if (Date.now() - start > timeout) {
+          resolve(false);
+          return;
+        }
+        setTimeout(check, 60);
+      };
+      check();
+    });
+  };
+
+  const getValidOptions = (select) => {
+    return Array.from(select?.options || [])
+      .map((opt) => opt.value)
+      .filter((value) => value !== '');
+  };
+
+  const setSelectIfValid = (select, value) => {
+    if (!select || !value || select.value.trim()) return false;
+    const options = getValidOptions(select);
+    if (!options.includes(value)) return false;
+    select.value = value;
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+    return true;
+  };
+
+  const setRadioIfValid = (name, value) => {
+    if (!value) return false;
+    const existing = document.querySelector(`input[name="${name}"]:checked`);
+    if (existing) return false;
+    const target = document.querySelector(`input[name="${name}"][value="${value}"]`);
+    if (!target) return false;
+    target.checked = true;
+    target.dispatchEvent(new Event('change', { bubbles: true }));
+    return true;
+  };
+
+  const parseGeminiResponse = (text) => {
+    if (!text) return null;
+    const cleaned = text.replace(/```json/g, '').replace(/```/g, '').trim();
+    return JSON.parse(cleaned);
+  };
+
+  const buildGeminiPrompt = (ocrText, insegurasData) => {
+    const tipos = Object.keys(insegurasData || {});
+    const categoriasPorTipo = tipos.reduce((acc, tipo) => {
+      acc[tipo] = Object.keys(insegurasData[tipo] || {});
+      return acc;
+    }, {});
+    const subcategoriasPorTipo = tipos.reduce((acc, tipo) => {
+      const categorias = insegurasData[tipo] || {};
+      acc[tipo] = Object.keys(categorias).reduce((catAcc, categoria) => {
+        catAcc[categoria] = categorias[categoria] || [];
+        return catAcc;
+      }, {});
+      return acc;
+    }, {});
+
+    return `
+Você extrai dados de um cartão POC. Retorne apenas JSON válido.
+
+Tarefa:
+- Interpretar o texto OCR abaixo e preencher os campos solicitados.
+- Para radios/selects, use somente valores das listas fornecidas (match exato) ou null.
+- Se não tiver certeza, use null.
+- Use strings curtas e objetivas para texto.
+
+Campos a retornar:
+{
+  "tipoInsegura": "PRATICA" | "CONDICAO" | null,
+  "categoria": string | null,
+  "subcategoria": string | null,
+  "observado": "colaborador" | "terceiro" | "visitante" | null,
+  "quantidade": number | null,
+  "praticaInsegura": string | null,
+  "acaoRecomendada": string | null,
+  "confianca": {
+    "tipoInsegura": 0-1,
+    "categoria": 0-1,
+    "subcategoria": 0-1,
+    "observado": 0-1,
+    "quantidade": 0-1
+  }
+}
+
+Listas válidas (use match exato):
+tiposValidos: ${JSON.stringify(tipos)}
+categoriasValidasPorTipo: ${JSON.stringify(categoriasPorTipo)}
+subcategoriasPorTipo: ${JSON.stringify(subcategoriasPorTipo)}
+observadoOpcoes: ["colaborador", "terceiro", "visitante"]
+
+Texto OCR (frente/verso):
+${ocrText}
+`;
+  };
+
+  const callGemini = async (prompt, apiKey) => {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ role: 'user', parts: [{ text: prompt }] }],
+          generationConfig: {
+            temperature: 0.2,
+            maxOutputTokens: 768
+          }
+        })
+      }
+    );
+    if (!response.ok) {
+      throw new Error('Erro ao chamar Gemini.');
+    }
+    const data = await response.json();
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    if (!text) {
+      throw new Error('Gemini não retornou conteúdo.');
+    }
+    return text;
+  };
+
+  clearLog();
 
   if (runBtn) {
     runBtn.disabled = true;
@@ -275,6 +448,92 @@ window.PocAI.run = async function () {
     return result?.data?.text || '';
   };
 
+  const applyOcrFallback = (selectedType, combinedText, frontText, backText) => {
+    const fallbackText = combinedText || frontText || backText;
+    const pratica = document.getElementById('pratica-insegura');
+    const acao = document.getElementById('acao-recomendada');
+    const reconhecimento = document.getElementById('reconhecimento');
+
+    if (selectedType === 'insegura' && pratica && !pratica.value.trim()) {
+      pratica.value = fallbackText;
+    }
+    if (selectedType === 'insegura' && acao && !acao.value.trim()) {
+      acao.value = fallbackText;
+    }
+    if (selectedType === 'segura' && reconhecimento && !reconhecimento.value.trim()) {
+      reconhecimento.value = fallbackText;
+    }
+  };
+
+  const applyInseguraFields = async (payload) => {
+    if (!payload) return false;
+    let didApply = false;
+
+    const tipoInsegura = payload.tipoInsegura;
+    const categoria = payload.categoria;
+    const subcategoria = payload.subcategoria;
+    const observado = payload.observado;
+    const quantidade = payload.quantidade;
+    const praticaTexto = payload.praticaInsegura;
+    const acaoTexto = payload.acaoRecomendada;
+
+    const tipoSet = setRadioIfValid('tipoInsegura', tipoInsegura);
+    if (tipoSet) {
+      didApply = true;
+    }
+
+    if (tipoSet) {
+      await waitForOptions(categoriaSelect, 2, 1500);
+    }
+
+    if (categoria) {
+      const categoriaSet = setSelectIfValid(categoriaSelect, categoria);
+      if (categoriaSet) {
+        await waitForOptions(subcategoriaSelect, 2, 1500);
+        didApply = true;
+      }
+    }
+
+    if (subcategoria) {
+      const subcategoriaSet = setSelectIfValid(subcategoriaSelect, subcategoria);
+      if (subcategoriaSet) {
+        didApply = true;
+      }
+    }
+
+    const observadoSelect = document.getElementById('observado');
+    if (observadoSelect && observado && !observadoSelect.value.trim()) {
+      const validObservado = getValidOptions(observadoSelect);
+      if (validObservado.includes(observado)) {
+        observadoSelect.value = observado;
+        observadoSelect.dispatchEvent(new Event('change', { bubbles: true }));
+        didApply = true;
+      }
+    }
+
+    const quantidadeInput = document.getElementById('quantidade');
+    if (quantidadeInput && quantidadeInput.value.trim() === '' && Number.isFinite(quantidade)) {
+      const coerced = Math.round(Number(quantidade));
+      if (coerced >= 1) {
+        quantidadeInput.value = String(coerced);
+        quantidadeInput.dispatchEvent(new Event('input', { bubbles: true }));
+        didApply = true;
+      }
+    }
+
+    const praticaField = document.getElementById('pratica-insegura');
+    if (praticaField && praticaTexto && !praticaField.value.trim()) {
+      praticaField.value = cleanTextField(praticaTexto);
+      didApply = true;
+    }
+    const acaoField = document.getElementById('acao-recomendada');
+    if (acaoField && acaoTexto && !acaoField.value.trim()) {
+      acaoField.value = cleanTextField(acaoTexto);
+      didApply = true;
+    }
+    return didApply;
+  };
+
   try {
     status.textContent = 'Imagens recebidas. Interpretando conteúdo…';
     const [frontText, backText] = await Promise.all([
@@ -282,17 +541,40 @@ window.PocAI.run = async function () {
       recognizeImage(back.files[0], 'Verso')
     ]);
 
-    const combinedText = [frontText, backText].map((text) => text.trim()).filter(Boolean).join('\n\n');
+    const combinedText = normalizeOcrText(
+      [frontText, backText].map((text) => text.trim()).filter(Boolean).join('\n\n')
+    );
     const selectedType = getSelectedType();
+    recognized.frontText = frontText;
+    recognized.backText = backText;
+    recognized.combinedText = combinedText;
+
+    logStep('OCR concluído com sucesso.');
 
     if (selectedType === 'insegura') {
-      const pratica = document.getElementById('pratica-insegura');
-      const acao = document.getElementById('acao-recomendada');
-      if (pratica && !pratica.value.trim()) {
-        pratica.value = combinedText || frontText || backText;
-      }
-      if (acao && !acao.value.trim()) {
-        acao.value = combinedText || frontText || backText;
+      const { apiKey, enabled } = getAiSettings();
+      const insegurasData = window.INSEGURAS || {};
+
+      if (enabled && apiKey && Object.keys(insegurasData).length) {
+        logStep('Chamando Gemini para interpretar o cartão...');
+        const prompt = buildGeminiPrompt(combinedText || frontText || backText, insegurasData);
+        const geminiText = await callGemini(prompt, apiKey);
+        logStep('JSON recebido do Gemini. Aplicando campos...');
+        const parsed = parseGeminiResponse(geminiText);
+        const applied = await applyInseguraFields(parsed);
+        if (!applied) {
+          logStep('Gemini não retornou dados aplicáveis. Usando OCR como fallback.');
+          applyOcrFallback(selectedType, combinedText, frontText, backText);
+        }
+      } else {
+        if (!enabled) {
+          logStep('Modo IA desativado. Usando OCR como fallback.');
+        } else if (!apiKey) {
+          logStep('Chave do Gemini ausente. Usando OCR como fallback.');
+        } else {
+          logStep('Dados de categorias indisponíveis. Usando OCR como fallback.');
+        }
+        applyOcrFallback(selectedType, combinedText, frontText, backText);
       }
     }
 
@@ -304,11 +586,24 @@ window.PocAI.run = async function () {
     }
 
     updateUI();
-    status.textContent = 'Leitura concluída. Campos preenchidos com OCR.';
+    status.textContent = 'Leitura concluída. Campos preenchidos.';
   } catch (err) {
     if (error) {
       error.classList.remove('d-none');
       error.textContent = err?.message || 'Erro ao ler imagens.';
+    }
+    logStep('Erro ao interpretar imagens. Aplicando fallback OCR.');
+    try {
+      const selectedType = getSelectedType();
+      applyOcrFallback(
+        selectedType,
+        recognized.combinedText,
+        recognized.frontText,
+        recognized.backText
+      );
+      updateUI();
+    } catch (fallbackError) {
+      console.error(fallbackError);
     }
     status.textContent = 'Não foi possível interpretar as imagens.';
   } finally {
@@ -338,6 +633,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const modeCameraBtn = document.getElementById('pocAiModeCamera');
   const modeGalleryBtn = document.getElementById('pocAiModeGallery');
   const modeStatus = document.getElementById('pocAiFillStatus');
+  const settingsKeyInput = document.getElementById('pocAiApiKey');
+  const settingsEnabledInput = document.getElementById('pocAiEnabled');
+  const settingsSaveBtn = document.getElementById('pocAiSaveSettings');
+  const settingsStatus = document.getElementById('pocAiSettingsStatus');
 
   const ensureModal = (modalElement) => {
     if (!modalElement || !window.bootstrap?.Modal) {
@@ -365,6 +664,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
+  const loadAiSettings = () => {
+    if (!settingsKeyInput || !settingsEnabledInput) return;
+    settingsKeyInput.value = localStorage.getItem('pocAiApiKey') || '';
+    settingsEnabledInput.checked = localStorage.getItem('pocAiEnabled') === 'true';
+  };
+
+  const saveAiSettings = () => {
+    if (!settingsKeyInput || !settingsEnabledInput) return;
+    localStorage.setItem('pocAiApiKey', settingsKeyInput.value.trim());
+    localStorage.setItem('pocAiEnabled', settingsEnabledInput.checked ? 'true' : 'false');
+    if (settingsStatus) {
+      settingsStatus.classList.remove('d-none');
+      settingsStatus.textContent = 'Configurações salvas com sucesso.';
+    }
+  };
+
   fillButtons.forEach((btn) => {
     if (!btn) return;
     btn.addEventListener('click', () => {
@@ -384,6 +699,20 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   });
+
+  if (settingsSaveBtn) {
+    settingsSaveBtn.addEventListener('click', saveAiSettings);
+  }
+
+  if (settingsModalEl) {
+    settingsModalEl.addEventListener('show.bs.modal', () => {
+      loadAiSettings();
+      if (settingsStatus) {
+        settingsStatus.classList.add('d-none');
+        settingsStatus.textContent = '';
+      }
+    });
+  }
 
   if (modeCameraBtn) {
     modeCameraBtn.addEventListener('click', () => setCaptureMode('camera'));
