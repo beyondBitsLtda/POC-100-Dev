@@ -224,23 +224,181 @@ window.PocAI.run = async function () {
   const front = document.getElementById('pocAiFront');
   const back = document.getElementById('pocAiBack');
   const status = document.getElementById('pocAiFillStatus');
+  const progress = document.getElementById('pocAiProgress');
+  const error = document.getElementById('pocAiError');
+  const runBtn = document.getElementById('pocAiRun');
 
   if (!front?.files?.length || !back?.files?.length) {
     status.textContent = 'Selecione a frente e o verso do cartão.';
     return;
   }
 
+  if (!window.Tesseract) {
+    status.textContent = 'Biblioteca OCR indisponível. Recarregue a página.';
+    return;
+  }
+
+  if (runBtn) {
+    runBtn.disabled = true;
+  }
+
+  if (error) {
+    error.classList.add('d-none');
+    error.textContent = '';
+  }
+  if (progress) {
+    progress.classList.remove('d-none');
+    progress.textContent = 'Preparando leitura OCR…';
+  }
+
   status.textContent = 'Enviando imagens para leitura por IA…';
 
-  // Aqui entra o pipeline Gemini (já existente no projeto)
-  // Este stub apenas confirma o fluxo correto
-  setTimeout(() => {
+  const readFileAsDataUrl = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(new Error('Falha ao ler imagem.'));
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const recognizeImage = async (file, label) => {
+    const imageData = await readFileAsDataUrl(file);
+    const result = await window.Tesseract.recognize(imageData, 'por', {
+      logger: (message) => {
+        if (progress && message.status) {
+          const pct = Math.round((message.progress || 0) * 100);
+          progress.textContent = `${label}: ${message.status} ${pct}%`;
+        }
+      }
+    });
+    return result?.data?.text || '';
+  };
+
+  try {
     status.textContent = 'Imagens recebidas. Interpretando conteúdo…';
-  }, 800);
+    const [frontText, backText] = await Promise.all([
+      recognizeImage(front.files[0], 'Frente'),
+      recognizeImage(back.files[0], 'Verso')
+    ]);
+
+    const combinedText = [frontText, backText].map((text) => text.trim()).filter(Boolean).join('\n\n');
+    const selectedType = getSelectedType();
+
+    if (selectedType === 'insegura') {
+      const pratica = document.getElementById('pratica-insegura');
+      const acao = document.getElementById('acao-recomendada');
+      if (pratica && !pratica.value.trim()) {
+        pratica.value = combinedText || frontText || backText;
+      }
+      if (acao && !acao.value.trim()) {
+        acao.value = combinedText || frontText || backText;
+      }
+    }
+
+    if (selectedType === 'segura') {
+      const reconhecimento = document.getElementById('reconhecimento');
+      if (reconhecimento && !reconhecimento.value.trim()) {
+        reconhecimento.value = combinedText || frontText || backText;
+      }
+    }
+
+    updateUI();
+    status.textContent = 'Leitura concluída. Campos preenchidos com OCR.';
+  } catch (err) {
+    if (error) {
+      error.classList.remove('d-none');
+      error.textContent = err?.message || 'Erro ao ler imagens.';
+    }
+    status.textContent = 'Não foi possível interpretar as imagens.';
+  } finally {
+    if (progress) {
+      progress.classList.add('d-none');
+    }
+    if (runBtn) {
+      runBtn.disabled = false;
+    }
+  }
 };
 
 document.addEventListener('DOMContentLoaded', () => {
   const runBtn = document.getElementById('pocAiRun');
+  const fillModalEl = document.getElementById('pocAiFillModal');
+  const settingsModalEl = document.getElementById('pocAiSettingsModal');
+  const fillButtons = [
+    document.getElementById('poc-ai-fill-btn'),
+    document.getElementById('poc-ai-fill-btn-safe')
+  ];
+  const settingsButtons = [
+    document.getElementById('poc-ai-settings-btn'),
+    document.getElementById('poc-ai-settings-btn-safe')
+  ];
+  const frontInput = document.getElementById('pocAiFront');
+  const backInput = document.getElementById('pocAiBack');
+  const modeCameraBtn = document.getElementById('pocAiModeCamera');
+  const modeGalleryBtn = document.getElementById('pocAiModeGallery');
+  const modeStatus = document.getElementById('pocAiFillStatus');
+
+  const ensureModal = (modalElement) => {
+    if (!modalElement || !window.bootstrap?.Modal) {
+      return null;
+    }
+    return window.bootstrap.Modal.getOrCreateInstance(modalElement);
+  };
+
+  const setCaptureMode = (mode) => {
+    if (!frontInput || !backInput) return;
+    const captureValue = mode === 'camera' ? 'environment' : null;
+    [frontInput, backInput].forEach((input) => {
+      if (captureValue) {
+        input.setAttribute('capture', captureValue);
+      } else {
+        input.removeAttribute('capture');
+      }
+      input.value = '';
+    });
+    if (modeStatus) {
+      modeStatus.textContent =
+        mode === 'camera'
+          ? 'Modo câmera ativado. Tire as fotos.'
+          : 'Escolha imagens da galeria.';
+    }
+  };
+
+  fillButtons.forEach((btn) => {
+    if (!btn) return;
+    btn.addEventListener('click', () => {
+      const modal = ensureModal(fillModalEl);
+      if (modal) {
+        modal.show();
+      }
+    });
+  });
+
+  settingsButtons.forEach((btn) => {
+    if (!btn) return;
+    btn.addEventListener('click', () => {
+      const modal = ensureModal(settingsModalEl);
+      if (modal) {
+        modal.show();
+      }
+    });
+  });
+
+  if (modeCameraBtn) {
+    modeCameraBtn.addEventListener('click', () => setCaptureMode('camera'));
+  }
+
+  if (modeGalleryBtn) {
+    modeGalleryBtn.addEventListener('click', () => setCaptureMode('gallery'));
+  }
+
+  if (fillModalEl) {
+    fillModalEl.addEventListener('show.bs.modal', () => {
+      setCaptureMode('gallery');
+    });
+  }
+
   if (runBtn) {
     runBtn.addEventListener('click', () => {
       if (window.PocAI && typeof window.PocAI.run === 'function') {
