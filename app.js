@@ -241,6 +241,82 @@ window.PocAI.run = async function () {
 
 document.addEventListener('DOMContentLoaded', () => {
   const runBtn = document.getElementById('pocAiRun');
+  const fillModalEl = document.getElementById('pocAiFillModal');
+  const settingsModalEl = document.getElementById('pocAiSettingsModal');
+  const fillButtons = [
+    document.getElementById('poc-ai-fill-btn'),
+    document.getElementById('poc-ai-fill-btn-safe')
+  ];
+  const settingsButtons = [
+    document.getElementById('poc-ai-settings-btn'),
+    document.getElementById('poc-ai-settings-btn-safe')
+  ];
+  const frontInput = document.getElementById('pocAiFront');
+  const backInput = document.getElementById('pocAiBack');
+  const modeCameraBtn = document.getElementById('pocAiModeCamera');
+  const modeGalleryBtn = document.getElementById('pocAiModeGallery');
+  const modeStatus = document.getElementById('pocAiFillStatus');
+
+  const ensureModal = (modalElement) => {
+    if (!modalElement || !window.bootstrap?.Modal) {
+      return null;
+    }
+    return window.bootstrap.Modal.getOrCreateInstance(modalElement);
+  };
+
+  const setCaptureMode = (mode) => {
+    if (!frontInput || !backInput) return;
+    const captureValue = mode === 'camera' ? 'environment' : null;
+    [frontInput, backInput].forEach((input) => {
+      if (captureValue) {
+        input.setAttribute('capture', captureValue);
+      } else {
+        input.removeAttribute('capture');
+      }
+      input.value = '';
+    });
+    if (modeStatus) {
+      modeStatus.textContent =
+        mode === 'camera'
+          ? 'Modo câmera ativado. Tire as fotos.'
+          : 'Escolha imagens da galeria.';
+    }
+  };
+
+  fillButtons.forEach((btn) => {
+    if (!btn) return;
+    btn.addEventListener('click', () => {
+      const modal = ensureModal(fillModalEl);
+      if (modal) {
+        modal.show();
+      }
+    });
+  });
+
+  settingsButtons.forEach((btn) => {
+    if (!btn) return;
+    btn.addEventListener('click', () => {
+      const modal = ensureModal(settingsModalEl);
+      if (modal) {
+        modal.show();
+      }
+    });
+  });
+
+  if (modeCameraBtn) {
+    modeCameraBtn.addEventListener('click', () => setCaptureMode('camera'));
+  }
+
+  if (modeGalleryBtn) {
+    modeGalleryBtn.addEventListener('click', () => setCaptureMode('gallery'));
+  }
+
+  if (fillModalEl) {
+    fillModalEl.addEventListener('show.bs.modal', () => {
+      setCaptureMode('gallery');
+    });
+  }
+
   if (runBtn) {
     runBtn.addEventListener('click', () => {
       if (window.PocAI && typeof window.PocAI.run === 'function') {
