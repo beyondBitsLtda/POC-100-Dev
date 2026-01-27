@@ -224,10 +224,15 @@ window.PocAI.run = async function () {
   const front = document.getElementById('pocAiFront');
   const back = document.getElementById('pocAiBack');
   const status = document.getElementById('pocAiFillStatus');
+  const runBtn = document.getElementById('pocAiRun');
 
   if (!front?.files?.length || !back?.files?.length) {
     status.textContent = 'Selecione a frente e o verso do cartão.';
     return;
+  }
+
+  if (runBtn) {
+    runBtn.disabled = true;
   }
 
   status.textContent = 'Enviando imagens para leitura por IA…';
@@ -236,6 +241,12 @@ window.PocAI.run = async function () {
   // Este stub apenas confirma o fluxo correto
   setTimeout(() => {
     status.textContent = 'Imagens recebidas. Interpretando conteúdo…';
+    setTimeout(() => {
+      status.textContent = 'Leitura concluída. Pronto para preencher o formulário.';
+      if (runBtn) {
+        runBtn.disabled = false;
+      }
+    }, 1200);
   }, 800);
 };
 
