@@ -280,6 +280,7 @@ window.PocAI.run = async function () {
     return { apiKey, enabled };
   };
 
+  // Aguarda o carregamento de opções em um select dinâmico.
   const waitForOptions = (select, minOptions = 2, timeout = 1500) => {
     return new Promise((resolve) => {
       const start = Date.now();
@@ -324,13 +325,8 @@ window.PocAI.run = async function () {
     return true;
   };
 
-  const parseGeminiResponse = (text) => {
-    if (!text) return null;
-    const cleaned = text.replace(/```json/g, '').replace(/```/g, '').trim();
-    return JSON.parse(cleaned);
-  };
-
-  const buildGeminiPrompt = (ocrText, insegurasData) => {
+  // Constrói o payload de opções válidas de categorias/subcategorias.
+  const buildInsegurasOptionsPayload = (insegurasData) => {
     const tipos = Object.keys(insegurasData || {});
     const categoriasPorTipo = tipos.reduce((acc, tipo) => {
       acc[tipo] = Object.keys(insegurasData[tipo] || {});
@@ -344,48 +340,49 @@ window.PocAI.run = async function () {
       }, {});
       return acc;
     }, {});
+    return {
+      tipos,
+      categoriasPorTipo,
+      subcategoriasPorTipo
+    };
+  };
 
-    return `
-Você extrai dados de um cartão POC. Retorne apenas JSON válido.
+  // Envia o texto OCR para o Gemini e retorna o JSON parseado.
+  const callGeminiToParse = async (ocrText, options) => {
+    const prompt = `
+Você extrai dados de um cartão POC. Retorne apenas JSON válido (sem markdown).
 
 Tarefa:
 - Interpretar o texto OCR abaixo e preencher os campos solicitados.
 - Para radios/selects, use somente valores das listas fornecidas (match exato) ou null.
 - Se não tiver certeza, use null.
 - Use strings curtas e objetivas para texto.
+- Não inclua dados do formulário como data, hora, observador, unidade, setor.
 
-Campos a retornar:
+Schema obrigatório:
 {
+  "tipoRegistro": "insegura",
   "tipoInsegura": "PRATICA" | "CONDICAO" | null,
   "categoria": string | null,
   "subcategoria": string | null,
   "observado": "colaborador" | "terceiro" | "visitante" | null,
   "quantidade": number | null,
   "praticaInsegura": string | null,
-  "acaoRecomendada": string | null,
-  "confianca": {
-    "tipoInsegura": 0-1,
-    "categoria": 0-1,
-    "subcategoria": 0-1,
-    "observado": 0-1,
-    "quantidade": 0-1
-  }
+  "acaoRecomendada": string | null
 }
 
 Listas válidas (use match exato):
-tiposValidos: ${JSON.stringify(tipos)}
-categoriasValidasPorTipo: ${JSON.stringify(categoriasPorTipo)}
-subcategoriasPorTipo: ${JSON.stringify(subcategoriasPorTipo)}
+tiposValidos: ${JSON.stringify(options.tipos)}
+categoriasValidasPorTipo: ${JSON.stringify(options.categoriasPorTipo)}
+subcategoriasPorTipo: ${JSON.stringify(options.subcategoriasPorTipo)}
 observadoOpcoes: ["colaborador", "terceiro", "visitante"]
 
 Texto OCR (frente/verso):
 ${ocrText}
 `;
-  };
 
-  const callGemini = async (prompt, apiKey) => {
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${options.apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -406,7 +403,8 @@ ${ocrText}
     if (!text) {
       throw new Error('Gemini não retornou conteúdo.');
     }
-    return text;
+    const cleaned = text.replace(/```json/g, '').replace(/```/g, '').trim();
+    return JSON.parse(cleaned);
   };
 
   clearLog();
@@ -465,24 +463,47 @@ ${ocrText}
     }
   };
 
-  const applyInseguraFields = async (payload) => {
+  // Aplica o JSON interpretado no formulário com validação e ordem obrigatória.
+  const applyParsedToForm = async (payload, options) => {
     if (!payload) return false;
     let didApply = false;
 
-    const tipoInsegura = payload.tipoInsegura;
-    const categoria = payload.categoria;
-    const subcategoria = payload.subcategoria;
-    const observado = payload.observado;
-    const quantidade = payload.quantidade;
-    const praticaTexto = payload.praticaInsegura;
-    const acaoTexto = payload.acaoRecomendada;
+    const validTipos = ['PRATICA', 'CONDICAO'];
+    const tipoInsegura = validTipos.includes(payload.tipoInsegura)
+      ? payload.tipoInsegura
+      : null;
+    const categoria =
+      tipoInsegura && options.categoriasPorTipo[tipoInsegura]?.includes(payload.categoria)
+        ? payload.categoria
+        : null;
+    const subcategoria =
+      tipoInsegura
+      && categoria
+      && (options.subcategoriasPorTipo[tipoInsegura]?.[categoria] || []).includes(
+        payload.subcategoria
+      )
+        ? payload.subcategoria
+        : null;
+    const observadoOpcoes = ['colaborador', 'terceiro', 'visitante'];
+    const observado = observadoOpcoes.includes(payload.observado) ? payload.observado : null;
+    const quantidade = Number.isFinite(Number(payload.quantidade))
+      ? Math.round(Number(payload.quantidade))
+      : null;
+    const quantidadeValida = quantidade && quantidade >= 1 ? quantidade : null;
+    const praticaTexto = payload.praticaInsegura ? cleanTextField(payload.praticaInsegura) : null;
+    const acaoTexto = payload.acaoRecomendada ? cleanTextField(payload.acaoRecomendada) : null;
+
+    const tipoRegistroSet = setRadioIfValid('tipo-registro', 'insegura');
+    if (tipoRegistroSet) {
+      didApply = true;
+    }
 
     const tipoSet = setRadioIfValid('tipoInsegura', tipoInsegura);
     if (tipoSet) {
       didApply = true;
     }
 
-    if (tipoSet) {
+    if (tipoSet || tipoRegistroSet) {
       await waitForOptions(categoriaSelect, 2, 1500);
     }
 
@@ -512,23 +533,20 @@ ${ocrText}
     }
 
     const quantidadeInput = document.getElementById('quantidade');
-    if (quantidadeInput && quantidadeInput.value.trim() === '' && Number.isFinite(quantidade)) {
-      const coerced = Math.round(Number(quantidade));
-      if (coerced >= 1) {
-        quantidadeInput.value = String(coerced);
-        quantidadeInput.dispatchEvent(new Event('input', { bubbles: true }));
-        didApply = true;
-      }
+    if (quantidadeInput && quantidadeInput.value.trim() === '' && quantidadeValida) {
+      quantidadeInput.value = String(quantidadeValida);
+      quantidadeInput.dispatchEvent(new Event('input', { bubbles: true }));
+      didApply = true;
     }
 
     const praticaField = document.getElementById('pratica-insegura');
     if (praticaField && praticaTexto && !praticaField.value.trim()) {
-      praticaField.value = cleanTextField(praticaTexto);
+      praticaField.value = praticaTexto;
       didApply = true;
     }
     const acaoField = document.getElementById('acao-recomendada');
     if (acaoField && acaoTexto && !acaoField.value.trim()) {
-      acaoField.value = cleanTextField(acaoTexto);
+      acaoField.value = acaoTexto;
       didApply = true;
     }
     return didApply;
@@ -549,21 +567,33 @@ ${ocrText}
     recognized.backText = backText;
     recognized.combinedText = combinedText;
 
-    logStep('OCR concluído com sucesso.');
+    logStep('OCR ok');
 
     if (selectedType === 'insegura') {
       const { apiKey, enabled } = getAiSettings();
       const insegurasData = window.INSEGURAS || {};
+      const optionsPayload = buildInsegurasOptionsPayload(insegurasData);
 
       if (enabled && apiKey && Object.keys(insegurasData).length) {
-        logStep('Chamando Gemini para interpretar o cartão...');
-        const prompt = buildGeminiPrompt(combinedText || frontText || backText, insegurasData);
-        const geminiText = await callGemini(prompt, apiKey);
-        logStep('JSON recebido do Gemini. Aplicando campos...');
-        const parsed = parseGeminiResponse(geminiText);
-        const applied = await applyInseguraFields(parsed);
-        if (!applied) {
-          logStep('Gemini não retornou dados aplicáveis. Usando OCR como fallback.');
+        logStep('Interpretando com Gemini...');
+        try {
+          const parsed = await callGeminiToParse(combinedText || frontText || backText, {
+            apiKey,
+            ...optionsPayload
+          });
+          logStep('JSON ok');
+          logStep('Aplicando campos...');
+          const applied = await applyParsedToForm(parsed, optionsPayload);
+          if (!applied) {
+            logStep('Nenhum campo aplicável retornado. Usando OCR como fallback.');
+            applyOcrFallback(selectedType, combinedText, frontText, backText);
+          }
+        } catch (geminiError) {
+          if (error) {
+            error.classList.remove('d-none');
+            error.textContent = geminiError?.message || 'Falha ao interpretar com Gemini.';
+          }
+          logStep('Falha no Gemini. Usando OCR como fallback.');
           applyOcrFallback(selectedType, combinedText, frontText, backText);
         }
       } else {
@@ -586,6 +616,7 @@ ${ocrText}
     }
 
     updateUI();
+    logStep('Concluído');
     status.textContent = 'Leitura concluída. Campos preenchidos.';
   } catch (err) {
     if (error) {
