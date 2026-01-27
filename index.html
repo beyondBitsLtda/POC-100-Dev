@@ -18,7 +18,7 @@
 <body>
   <header class="app-header">
     <div class="container header-content">
-      <img src="logo.png" alt="Logo Wwin Safety" class="logo" />
+      <img src="assets/css/logo.png" alt="Logo Wwin Safety" class="logo" />
       <divc class="header-title">
         <h1>P.O.C 100</h1>
       </div>
@@ -120,16 +120,12 @@
         <div class="tab-panel" data-tab-panel="inseguras" role="tabpanel">
           <h2>Práticas / Condição Inseguras</h2>
 
-          <!-- IA (OCR + interpretação) - aparece apenas nas abas Inseguras / Seguras -->
-          <div class="ai-toolbar" data-ai-toolbar>
-            <button type="button" id="poc-ai-fill-btn" class="secondary" aria-label="Preencher cartão de POC com IA" disabled>
-              Preencher cartão de POC
-            </button>
-            <button type="button" id="poc-ai-settings-btn" class="icon" aria-label="Opções IA" title="Opções IA">
-              ⚙️
-            </button>
+          <div class="ai-toolbar" id="poc-ai-toolbar-unsafe">
+            <button type="button" class="ai-btn" id="poc-ai-fill-btn">Preencher cartão de POC</button>
+            <button type="button" class="ai-gear" id="poc-ai-settings-btn" aria-label="Opções IA" title="Opções IA">⚙️</button>
+            <div class="ai-hint" id="poc-ai-hint-unsafe"></div>
           </div>
-          <div id="poc-ai-log" class="ai-log" aria-live="polite"></div>
+
           <fieldset class="radio-group">
             <legend><strong>Tipo de Registro*</strong></legend>
             <label>
@@ -179,16 +175,12 @@
         <div class="tab-panel" data-tab-panel="seguras" role="tabpanel">
           <h2>Reconhecimento de Prática Segura</h2>
 
-          <!-- IA (OCR + interpretação) - aparece apenas nas abas Inseguras / Seguras -->
-          <div class="ai-toolbar" data-ai-toolbar>
-            <button type="button" id="poc-ai-fill-btn-safe" class="secondary" aria-label="Preencher cartão de POC com IA" disabled>
-              Preencher cartão de POC
-            </button>
-            <button type="button" id="poc-ai-settings-btn-safe" class="icon" aria-label="Opções IA" title="Opções IA">
-              ⚙️
-            </button>
+          <div class="ai-toolbar" id="poc-ai-toolbar-safe">
+            <button type="button" class="ai-btn" id="poc-ai-fill-btn-safe">Preencher cartão de POC</button>
+            <button type="button" class="ai-gear" id="poc-ai-settings-btn-safe" aria-label="Opções IA" title="Opções IA">⚙️</button>
+            <div class="ai-hint" id="poc-ai-hint-safe"></div>
           </div>
-          <div id="poc-ai-log-safe" class="ai-log" aria-live="polite"></div>
+
           <label><strong>Reconhecimento do Trabalho Seguro*</strong>
             <textarea id="reconhecimento" rows="4" required></textarea>
           </label>
@@ -201,70 +193,6 @@
           <button type="button" id="add-btn" class="primary" disabled>Adicionar</button>
         </div>
       </form>
-
-      <!-- MODAL: Opções IA -->
-      <div class="modal fade" id="pocAiSettingsModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h5 class="modal-title">Opções IA</h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
-            </div>
-            <div class="modal-body">
-              <div class="mb-3">
-                <label for="pocAiApiKey" class="form-label"><strong>Gemini API Key</strong></label>
-                <input type="password" class="form-control" id="pocAiApiKey" placeholder="Cole sua API Key" autocomplete="off" />
-                <div class="form-text">A chave fica salva apenas no seu navegador (localStorage).</div>
-              </div>
-              <div class="form-check form-switch mb-2">
-                <input class="form-check-input" type="checkbox" role="switch" id="pocAiEnabled" />
-                <label class="form-check-label" for="pocAiEnabled"><strong>Modo IA</strong> (OCR + preenchimento)</label>
-              </div>
-              <div class="small text-muted">
-                As imagens do cartão (frente/verso) serão enviadas ao Gemini para leitura e preenchimento. Você pode desligar quando quiser.
-              </div>
-              <div id="pocAiSettingsStatus" class="ai-status" aria-live="polite"></div>
-            </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
-              <button type="button" class="btn btn-primary" id="pocAiSaveSettings">Salvar</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- MODAL: Preencher Cartão -->
-      <div class="modal fade" id="pocAiFillModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h5 class="modal-title">Preencher cartão de POC</h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
-            </div>
-            <div class="modal-body">
-              <div class="ai-mode">
-                <button type="button" class="btn btn-outline-secondary" id="pocAiModeCamera">Câmera</button>
-                <button type="button" class="btn btn-outline-secondary" id="pocAiModeGallery">Galeria</button>
-              </div>
-              <div class="ai-file-grid">
-                <div>
-                  <label class="form-label"><strong>Frente*</strong></label>
-                  <input type="file" class="form-control" id="pocAiFront" accept="image/*" />
-                </div>
-                <div>
-                  <label class="form-label"><strong>Verso*</strong></label>
-                  <input type="file" class="form-control" id="pocAiBack" accept="image/*" />
-                </div>
-              </div>
-              <div id="pocAiFillStatus" class="ai-status" aria-live="polite"></div>
-            </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-              <button type="button" class="btn btn-primary" id="pocAiRun">Ler e preencher</button>
-            </div>
-          </div>
-        </div>
-      </div>
     </section>
 
     <section class="view-panel" data-view-panel="consultar">
@@ -360,7 +288,78 @@
     integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo="
     crossorigin="anonymous"
   ></script>
-  <script
+  
+  <!-- =========================
+       PocAI Modals (Gemini)
+       ========================= -->
+  <div class="modal fade" id="pocAiSettingsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Opções IA (Gemini)</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label"><strong>API Key do Gemini</strong></label>
+            <input type="password" class="form-control" id="pocAiApiKey" placeholder="Cole sua chave aqui" autocomplete="off" />
+            <div class="form-text">A chave fica salva apenas no seu navegador (localStorage).</div>
+          </div>
+          <div class="form-check form-switch mb-2">
+            <input class="form-check-input" type="checkbox" role="switch" id="pocAiEnabled">
+            <label class="form-check-label" for="pocAiEnabled"><strong>Modo IA</strong> ligado</label>
+          </div>
+          <div class="ai-privacy">
+            As imagens serão enviadas ao Gemini para leitura e preenchimento do formulário. Você pode desligar o modo IA quando quiser.
+          </div>
+          <div class="alert alert-info mt-3 d-none" id="pocAiSettingsStatus"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+          <button type="button" class="btn btn-primary" id="pocAiSaveSettings">Salvar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="pocAiFillModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Preencher cartão de POC</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-body">
+          <div class="ai-mode-row mb-3">
+            <button type="button" class="btn btn-outline-primary btn-sm" id="pocAiModeCamera">Câmera</button>
+            <button type="button" class="btn btn-outline-primary btn-sm" id="pocAiModeGallery">Galeria</button>
+            <span class="ai-mode-status" id="pocAiFillStatus"></span>
+          </div>
+
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label"><strong>Foto da Frente*</strong></label>
+              <input class="form-control" type="file" id="pocAiFront" accept="image/*">
+            </div>
+            <div class="col-12">
+              <label class="form-label"><strong>Foto do Verso*</strong></label>
+              <input class="form-control" type="file" id="pocAiBack" accept="image/*">
+            </div>
+          </div>
+
+          <div class="alert alert-danger mt-3 d-none" id="pocAiError"></div>
+          <div class="alert alert-info mt-3 d-none" id="pocAiProgress"></div>
+          <div class="ai-log mt-3" id="pocAiLog"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-primary" id="pocAiRun">Ler e Preencher</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script
     src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
     integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
     crossorigin="anonymous"

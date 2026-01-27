@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OCR, Correção e Análise (Google APIs)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .ocr-container { max-width: 900px; }
+        .ocr-section { padding: 16px; background: #fff; border-radius: 8px; margin-bottom: 16px; border: 1px solid rgba(0,0,0,0.06); }
+        .ocr-section h3 { margin: 0 0 12px 0; font-size: 16px; color: #212529; font-weight: 600; letter-spacing: 0.3px; }
+        .form-group { margin-bottom: 12px; }
+        .form-group label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #495057; }
+        .form-group input[type="text"], .form-group input[type="file"] { 
+            width: 100%; padding: 10px 12px; border: 1px solid #d0d0d0; border-radius: 6px; 
+            font-size: 13px; transition: all 0.2s; font-family: 'Inter', sans-serif; box-sizing: border-box;
+        }
+        .form-group input[type="text"]:focus, .form-group input[type="file"]:focus { 
+            outline: none; border-color: #CB0F10; box-shadow: 0 0 0 3px rgba(203,15,16,0.1); 
+        }
+        .btn { 
+            padding: 10px 16px; background: #CB0F10; color: #fff; border: none; border-radius: 6px; 
+            font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; font-family: 'Inter', sans-serif;
+        }
+        .btn:hover { background: #a00d0d; transform: translateY(-1px); box-shadow: 0 2px 8px rgba(203,15,16,0.2); }
+        .btn:active { transform: translateY(0); }
+        .btn-small { padding: 8px 12px; font-size: 12px; }
+        .btn-block { width: 100%; }
+        .result-panel { background: #f8f9fa; border: 1px solid #d0d0d0; border-radius: 8px; padding: 16px; max-height: 500px; overflow-y: auto; font-size: 13px; line-height: 1.6; word-break: break-word; font-family: 'Courier New', monospace; }
+        .result-header { font-weight: 700; color: #CB0F10; margin-top: 12px; margin-bottom: 8px; font-size: 14px; }
+        .result-success { background: #d4edda; color: #155724; padding: 12px; border-radius: 6px; margin: 8px 0; border-left: 4px solid #28a745; white-space: pre-wrap; }
+        .result-error { background: #f8d7da; color: #721c24; padding: 12px; border-radius: 6px; margin: 8px 0; border-left: 4px solid #dc3545; }
+        .result-info { background: #d1ecf1; color: #0c5460; padding: 12px; border-radius: 6px; margin: 8px 0; border-left: 4px solid #17a2b8; }
+        .entity-item { background: #e7f3ff; padding: 10px; border-radius: 4px; margin: 6px 0; border-left: 3px solid #0066cc; }
+        .entity-name { font-weight: 600; color: #0066cc; }
+        .entity-type { color: #666; font-size: 12px; margin-left: 8px; }
+        .progress-bar { height: 4px; background: #e9ecef; border-radius: 2px; margin: 12px 0; overflow: hidden; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, #CB0F10, #ff6b6b); width: 0%; transition: width 0.3s ease; }
+        .info-helper { font-size: 12px; color: #999; margin-top: 6px; }
+        
+        /* Estilos para texto corrigido principal */
+        .corrected-text-container { 
+            background: linear-gradient(135deg, #f8f9fa 0%, #fff 100%);
+            border: 2px solid #CB0F10;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 16px 0;
+            box-shadow: 0 4px 12px rgba(203,15,16,0.15);
+        }
+        .corrected-text-title { 
+            font-size: 14px;
+            font-weight: 700;
+            color: #CB0F10;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .corrected-text-content { 
+            background: #fff;
+            border: 1px solid #d0d0d0;
+            border-radius: 6px;
+            padding: 16px;
+            font-size: 14px;
+            line-height: 1.8;
+            color: #212529;
+            font-family: 'Georgia', serif;
+            min-height: 150px;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .corrected-text-actions { 
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+            justify-content: flex-end;
+        }
+        .btn-export { background: #28a745; }
+        .btn-export:hover { background: #218838; }
+    </style>
+</head>
+<body>
+    <div class="top-bar">
+        <div class="top-bar-logo"><img src="" alt="logo" style="display:none;"/></div>
+        <div class="top-bar-right">
+            <div class="top-bar-search">
+                <input placeholder="Pesquisar..." />
+                <button class="search-button">OK</button>
+            </div>
+            <div class="top-bar-user"><div class="user-icon">👤</div><div class="user-name">Usuário</div></div>
+        </div>
+    </div>
+
+    <div class="sidebar">
+        <ul>
+            <li class="active"><a href="#"><i>🏠</i><span>Início</span></a></li>
+            <li><a href="#"><i>📷</i><span>OCR</span></a></li>
+            <li><a href="#"><i>⚙️</i><span>Config</span></a></li>
+        </ul>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1>OCR, Correção e Análise</h1>
+        </div>
+        <div class="main-content">
+            <div class="ocr-container">
+                <!-- Seção 1: Configuração da API -->
+                <div class="ocr-section">
+                    <h3>🔐 Configuração da API</h3>
+                    <div class="form-group">
+                        <label for="chave">Chave da API Google (AIzaSy...):</label>
+                        <div style="display:flex;gap:8px;align-items:center">
+                            <input type="text" id="chave" placeholder="Insira sua chave do Google aqui" required style="flex:1">
+                            <button class="btn btn-small" onclick="saveApiKey()">Salvar</button>
+                            <button class="btn btn-secondary btn-small" onclick="removeApiKey()">Remover</button>
+                        </div>
+                        <p class="info-helper">Gere uma chave em: https://console.cloud.google.com/</p>
+                        <div style="margin-top:6px;font-size:13px;color:#666">Status: <span id="chaveStatus">Nenhuma chave salva</span></div>
+                    </div>
+                </div>
+
+                <!-- Seção 2: Seleção de Imagem -->
+                <div class="ocr-section">
+                    <h3>📸 Seleção de Arquivo</h3>
+                    <div class="form-group">
+                        <label for="imagem">Selecione a Imagem (Manuscrito/Documento):</label>
+                        <input type="file" id="imagem" accept="image/*" required>
+                        <p class="info-helper">Formatos aceitos: JPEG, PNG, GIF, WebP (máx. 20 MB)</p>
+                    </div>
+                    <button class="btn btn-block" onclick="processarImagem()">🚀 Processar Tudo (OCR + Corrigir)</button>
+                </div>
+
+                <!-- Seção 3: Progresso -->
+                <div class="ocr-section">
+                    <h3>📊 Progresso</h3>
+                    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+                </div>
+
+                <!-- Seção 4: Resultados -->
+                <div class="ocr-section">
+                    <h3>📋 Resultados do Processamento</h3>
+                    <div id="resultado" class="result-panel">Aguardando processamento... Clique no botão acima para iniciar.</div>
+                </div>
+
+                <!-- Seção 5: Texto Corrigido (Entrega Principal) -->
+                <div id="correctedTextSection" style="display:none;">
+                    <div class="corrected-text-container">
+                        <div class="corrected-text-title">
+                            ✨ Texto Corrigido (Sua Entrega)
+                        </div>
+                        <div class="corrected-text-content" id="correctedTextContent"></div>
+                        <div class="corrected-text-actions">
+                            <button class="btn btn-small" onclick="copiarTextoCorrigido()">📋 Copiar</button>
+                            <button class="btn btn-export btn-small" onclick="exportarTextoCorrigido()">💾 Exportar TXT</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const VISION_API_URL = "https://vision.googleapis.com/v1/images:annotate";
+        const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
+        const LANGUAGE_API_URL = "https://language.googleapis.com/v1/documents:annotateText";
+
+        function toBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result.split(',')[1]); 
+                reader.onerror = error => reject(error);
+            });
+        }
+
+        function updateProgress(percent) {
+            document.getElementById('progressFill').style.width = percent + '%';
+        }
+
+        function addResult(title, content, type = 'info') {
+            const div = document.getElementById('resultado');
+            const section = document.createElement('div');
+            section.innerHTML = `<div class="result-header">📌 ${title}</div>`;
+            
+            if (type === 'success') {
+                section.innerHTML += `<div class="result-success">${escapeHtml(content)}</div>`;
+            } else if (type === 'error') {
+                section.innerHTML += `<div class="result-error"><strong>❌ ERRO:</strong> ${escapeHtml(content)}</div>`;
+            } else if (type === 'info') {
+                section.innerHTML += `<div class="result-info">${escapeHtml(content)}</div>`;
+            }
+            
+            div.appendChild(section);
+            div.scrollTop = div.scrollHeight;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function clearResults() {
+            document.getElementById('resultado').innerHTML = '';
+            document.getElementById('correctedTextSection').style.display = 'none';
+            updateProgress(0);
+        }
+
+        function copiarTextoCorrigido() {
+            const texto = document.getElementById('correctedTextContent').textContent;
+            navigator.clipboard.writeText(texto).then(() => {
+                alert('✅ Texto copiado para a área de transferência!');
+            }).catch(() => {
+                alert('❌ Erro ao copiar o texto.');
+            });
+        }
+
+        function exportarTextoCorrigido() {
+            const texto = document.getElementById('correctedTextContent').textContent;
+            const blob = new Blob([texto], { type: 'text/plain;charset=utf-8' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'texto_corrigido_' + new Date().getTime() + '.txt';
+            link.click();
+            URL.revokeObjectURL(link.href);
+        }
+
+        /* Persistência da chave da API (localStorage) */
+        function saveApiKey() {
+            const key = document.getElementById('chave').value.trim();
+            if (!key) { alert('Por favor, insira a chave antes de salvar.'); return; }
+            try {
+                localStorage.setItem('gcp_api_key', key);
+                updateKeyStatus();
+                alert('✅ Chave salva localmente.');
+            } catch (e) {
+                console.error('Erro ao salvar chave:', e);
+                alert('❌ Não foi possível salvar a chave localmente.');
+            }
+        }
+
+        function removeApiKey() {
+            localStorage.removeItem('gcp_api_key');
+            document.getElementById('chave').value = '';
+            updateKeyStatus();
+            alert('🗑️ Chave removida.');
+        }
+
+        function loadApiKeyOnStart() {
+            const key = localStorage.getItem('gcp_api_key');
+            if (key) document.getElementById('chave').value = key;
+            updateKeyStatus();
+        }
+
+        function updateKeyStatus() {
+            const key = localStorage.getItem('gcp_api_key');
+            const status = document.getElementById('chaveStatus');
+            if (!status) return;
+            if (key) {
+                status.textContent = 'Chave salva — ' + maskKey(key);
+            } else {
+                status.textContent = 'Nenhuma chave salva';
+            }
+        }
+
+        function maskKey(k) {
+            if (!k) return '';
+            if (k.length <= 8) return k.replace(/.(?=.{4})/g, '*');
+            return k.slice(0,4) + '...' + k.slice(-4);
+        }
+
+        async function corrigirComGemini(chave, textoBruto) {
+            updateProgress(60);
+            addResult("Etapa 2: Correção Gramatical", "Enviando texto para Gemini para correção...", 'info');
+
+            const prompt = `Você é um corretor de texto de alta precisão. O texto a seguir foi extraído por OCR de um documento manuscrito, o que pode ter gerado erros. Corrija o texto, normalize a pontuação, e retorne APENAS o texto final corrigido, sem comentários:\n\nTEXTO: "${textoBruto}"`;
+
+            try {
+                const payload = {
+                    contents: [
+                        { parts: [{ text: prompt }] }
+                    ]
+                };
+
+                const response = await fetch(`${GEMINI_API_URL}?key=${chave}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Erro Gemini: ${response.status}`);
+                }
+
+                const result = await response.json();
+                const textoCorrigido = result.candidates?.[0]?.content?.parts?.[0]?.text || "Erro ao extrair texto corrigido.";
+                
+                // Exibir texto corrigido na janela principal
+                document.getElementById('correctedTextContent').textContent = textoCorrigido;
+                document.getElementById('correctedTextSection').style.display = 'block';
+                
+                addResult("Texto Corrigido com Sucesso ✅", "O texto foi processado pelo Gemini e está exibido na seção 'Texto Corrigido' abaixo.", 'success');
+                updateProgress(85);
+                
+                await analisarComNLP(chave, textoCorrigido);
+
+            } catch (error) {
+                addResult("Erro na Correção", error.message, 'error');
+                updateProgress(85);
+                await analisarComNLP(chave, textoBruto);
+            }
+        }
+
+        async function analisarComNLP(chave, texto) {
+            updateProgress(95);
+            addResult("Etapa 3: Análise de Entidades", "Verificando nomes e locais no texto...", 'info');
+
+            try {
+                const payload = {
+                    document: { type: "PLAIN_TEXT", content: texto, language: "pt" },
+                    features: { extractEntities: true }
+                };
+
+                const response = await fetch(`${LANGUAGE_API_URL}?key=${chave}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Erro Language API: ${response.status}`);
+                }
+
+                const result = await response.json();
+                
+                let htmlEntities = '<div style="margin-top:8px">';
+                if (result.entities && result.entities.length > 0) {
+                    result.entities.forEach(entity => {
+                        htmlEntities += `<div class="entity-item"><span class="entity-name">${escapeHtml(entity.name)}</span><span class="entity-type">Tipo: ${escapeHtml(entity.type)}</span></div>`;
+                    });
+                } else {
+                    htmlEntities += '<div class="result-info">Nenhuma entidade detectada.</div>';
+                }
+                htmlEntities += '</div>';
+                
+                const div = document.getElementById('resultado');
+                const section = document.createElement('div');
+                section.innerHTML = `<div class="result-header">📍 Entidades Detectadas</div>${htmlEntities}`;
+                div.appendChild(section);
+                
+                updateProgress(100);
+                addResult("Conclusão", "✅ Todas as etapas finalizadas com sucesso!", 'success');
+
+            } catch (error) {
+                addResult("Erro na Análise", error.message, 'error');
+                updateProgress(100);
+            }
+        }
+
+        async function processarImagem() {
+            const fileInput = document.getElementById('imagem');
+            const file = fileInput.files[0];
+            const chave = document.getElementById('chave').value.trim();
+
+            if (!file || !chave) {
+                alert("Por favor, preencha a chave da API e selecione uma imagem.");
+                return;
+            }
+
+            clearResults();
+            updateProgress(20);
+            addResult("Etapa 1: OCR com Google Vision", "Codificando imagem e enviando...", 'info');
+            
+            try {
+                const base64Image = await toBase64(file);
+                const payload = {
+                    requests: [ {
+                        image: { content: base64Image },
+                        features: [ { type: "DOCUMENT_TEXT_DETECTION" } ]
+                    } ]
+                };
+
+                updateProgress(40);
+                const response = await fetch(`${VISION_API_URL}?key=${chave}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Erro Vision API: ${response.status}`);
+                }
+
+                const result = await response.json();
+                
+                if (result.responses && result.responses[0].fullTextAnnotation) {
+                    const textoCompleto = result.responses[0].fullTextAnnotation.text;
+                    addResult("OCR Concluído", textoCompleto, 'success');
+                    updateProgress(50);
+                    
+                    await corrigirComGemini(chave, textoCompleto);
+
+                } else {
+                    addResult("Aviso OCR", "Nenhum texto foi detectado na imagem.", 'info');
+                    updateProgress(100);
+                }
+
+            } catch (error) {
+                addResult("Erro Fatal", error.message, 'error');
+                updateProgress(0);
+            }
+        }
+        // Inicializa leitura da chave salva (se existir)
+        loadApiKeyOnStart();
+    </script>
+</body>
+</html>
