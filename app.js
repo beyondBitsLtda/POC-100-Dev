@@ -227,13 +227,41 @@ updateUI();
  */
 function buildInsegurasOptionsPayload() {
   // INSEGURAS vem do HTML (script inline)
-  if (!window.INSEGURAS) {
+  // Tentar diferentes formas de acessar
+  let INSEGURAS_DATA = null;
+  
+  if (window.INSEGURAS) {
+    INSEGURAS_DATA = window.INSEGURAS;
+    console.log('✅ Encontrado via window.INSEGURAS');
+  } else if (typeof INSEGURAS !== 'undefined') {
+    INSEGURAS_DATA = INSEGURAS;
+    console.log('✅ Encontrado via variável global INSEGURAS');
+  } else if (window.PRATICA && window.CONDICAO) {
+    INSEGURAS_DATA = { PRATICA: window.PRATICA, CONDICAO: window.CONDICAO };
+    console.log('✅ Encontrado via window.PRATICA e window.CONDICAO separados');
+  }
+  
+  if (!INSEGURAS_DATA) {
+    console.error('❌ ERRO: Nenhuma forma de acessar INSEGURAS funcionou!');
+    console.log('🔍 Variáveis globais disponíveis:', Object.keys(window).filter(k => k.includes('INSEGURA') || k.includes('PRATICA') || k.includes('CONDICAO')));
     return { PRATICA: {}, CONDICAO: {} };
   }
-  return {
-    PRATICA: window.INSEGURAS.PRATICA || {},
-    CONDICAO: window.INSEGURAS.CONDICAO || {}
+  
+  console.log('🔍 INSEGURAS_DATA encontrado:', INSEGURAS_DATA);
+  console.log('🔍 Chaves em INSEGURAS_DATA:', Object.keys(INSEGURAS_DATA));
+  
+  const payload = {
+    PRATICA: INSEGURAS_DATA.PRATICA || {},
+    CONDICAO: INSEGURAS_DATA.CONDICAO || {}
   };
+  
+  console.log('✅ Payload construído:');
+  console.log('   - PRATICA:', payload.PRATICA);
+  console.log('   - PRATICA tem', Object.keys(payload.PRATICA).length, 'categorias');
+  console.log('   - CONDICAO:', payload.CONDICAO);
+  console.log('   - CONDICAO tem', Object.keys(payload.CONDICAO).length, 'categorias');
+  
+  return payload;
 }
 
 /**
@@ -334,6 +362,16 @@ PASSO A PASSO OBRIGATÓRIO:
 
 5️⃣ Escolha UMA SUBCATEGORIA da lista daquela categoria
 
+6️⃣ Escreva descrição CLARA e OBJETIVA (2-3 frases, 100-150 caracteres):
+   - Descreva O QUE foi observado
+   - ONDE e COMO estava acontecendo
+   - QUAL o risco presente
+
+7️⃣ Escreva ação recomendada CLARA e OBJETIVA (2-3 frases, 100-150 caracteres):
+   - O QUE deve ser feito
+   - COMO corrigir
+   - Cite norma se relevante (NR-35, NR-10, NR-06)
+
 EXEMPLOS CORRETOS DE PREENCHIMENTO:
 
 Exemplo 1 - PRATICA:
@@ -344,8 +382,8 @@ Exemplo 1 - PRATICA:
   "subcategoria": "B.3 Risco de Queda",
   "observado": "colaborador",
   "quantidade": 1,
-  "praticaInsegura": "Colaborador em cima de escada sem cinto de segurança realizando manutenção elétrica. Observado trabalhando a 4 metros de altura sem nenhuma proteção contra quedas.",
-  "acaoRecomendada": "Interromper atividade imediatamente. Fornecer cinto paraquedista com talabarte e instalar pontos de ancoragem. Treinar conforme NR-35 antes de retornar ao trabalho em altura."
+  "praticaInsegura": "Colaborador realizando manutenção elétrica em cima de escada de 4 metros sem cinto de segurança ou linha de vida. Escada sem calço de segurança em superfície irregular.",
+  "acaoRecomendada": "Interromper atividade imediatamente. Fornecer cinto paraquedista com talabarte e instalar pontos de ancoragem certificados. Treinar conforme NR-35 antes de retornar."
 }
 
 Exemplo 2 - CONDICAO:
@@ -356,8 +394,8 @@ Exemplo 2 - CONDICAO:
   "subcategoria": "CI.1 Piso irregular / escorregadio",
   "observado": "visitante",
   "quantidade": 2,
-  "praticaInsegura": "Piso da área de produção apresenta óleo derramado tornando superfície extremamente escorregadia. Dois visitantes transitando pela área correndo risco de queda.",
-  "acaoRecomendada": "Sinalizar e isolar área imediatamente. Realizar limpeza completa com produto absorvente e desengordurante. Investigar fonte do vazamento de óleo e corrigir definitivamente."
+  "praticaInsegura": "Derramamento de óleo hidráulico no piso da produção com aproximadamente 3 metros de diâmetro. Superfície extremamente escorregadia sem sinalização ou isolamento.",
+  "acaoRecomendada": "Sinalizar e isolar área imediatamente com cones e fita zebrada. Realizar limpeza com absorvente e desengordurante. Corrigir vazamento da prensa hidráulica."
 }
 
 Exemplo 3 - PRATICA com EPI:
@@ -368,16 +406,13 @@ Exemplo 3 - PRATICA com EPI:
   "subcategoria": "C.1 Cabeça",
   "observado": "terceiro",
   "quantidade": 3,
-  "praticaInsegura": "Três terceiros realizando carga e descarga sem capacete de segurança em área com movimentação de ponte rolante e risco de queda de materiais.",
-  "acaoRecomendada": "Fornecer capacetes classe A imediatamente. Orientar sobre obrigatoriedade do uso de EPI conforme ASO e realizar registro no sistema de gestão de segurança."
+  "praticaInsegura": "Três terceiros realizando carga e descarga sem capacete em área com ponte rolante ativa. Movimentação de cargas suspensas de até 2 toneladas sobre os trabalhadores.",
+  "acaoRecomendada": "Fornecer capacetes classe A certificados imediatamente. Realizar DDS sobre riscos de queda de objetos. Aplicar advertência formal ao encarregado."
 }
 
 ⚠️ ERROS COMUNS A EVITAR:
 ❌ categoria: "Risco de Queda" → ERRADO! Isso é subcategoria
 ✅ categoria: "B. Posição das Pessoas", subcategoria: "B.3 Risco de Queda" → CORRETO!
-
-❌ categoria: "Piso escorregadio" → ERRADO! Isso é subcategoria
-✅ categoria: "CI. Ambiente / Área", subcategoria: "CI.1 Piso irregular / escorregadio" → CORRETO!
 
 RETORNE APENAS O JSON PREENCHIDO (sem explicações, sem markdown):`;
 
@@ -487,6 +522,10 @@ RETORNE APENAS O JSON PREENCHIDO (sem explicações, sem markdown):`;
 function validateParsedFields(parsed, options) {
   const validated = { ...parsed };
 
+  console.log('🔍 DEBUG - Estrutura options recebida:', options);
+  console.log('🔍 DEBUG - Chaves disponíveis em options:', Object.keys(options));
+  console.log('🔍 DEBUG - tipoInsegura recebido:', validated.tipoInsegura);
+
   // Função para normalizar strings (remove espaços extras, normaliza unicode)
   const normalize = (str) => {
     if (!str) return str;
@@ -501,7 +540,22 @@ function validateParsedFields(parsed, options) {
 
   // Validar categoria e subcategoria
   if (validated.tipoInsegura && validated.categoria) {
-    const categoriesValid = Object.keys(options[validated.tipoInsegura] || {});
+    const tipoData = options[validated.tipoInsegura];
+    console.log(`🔍 DEBUG - options["${validated.tipoInsegura}"]:`, tipoData);
+    
+    if (!tipoData) {
+      console.error(`❌ ERRO: options["${validated.tipoInsegura}"] está undefined ou null!`);
+      console.log('🔍 Tentando chaves alternativas...');
+      // Tentar encontrar chave com nome similar
+      Object.keys(options).forEach(key => {
+        console.log(`   - Chave encontrada: "${key}"`);
+      });
+      validated.categoria = null;
+      validated.subcategoria = null;
+      return validated;
+    }
+    
+    const categoriesValid = Object.keys(tipoData);
     const categoriaNormalizada = normalize(validated.categoria);
     const categoriasNormalizadas = categoriesValid.map(c => normalize(c));
     
@@ -526,7 +580,7 @@ function validateParsedFields(parsed, options) {
       validated.categoria = categoriaCorreta;
       
       if (validated.subcategoria) {
-        const subcategoriesValid = options[validated.tipoInsegura][categoriaCorreta] || [];
+        const subcategoriesValid = tipoData[categoriaCorreta] || [];
         const subcategoriaNormalizada = normalize(validated.subcategoria);
         const subcategoriasNormalizadas = subcategoriesValid.map(s => normalize(s));
         
@@ -714,17 +768,19 @@ async function applyParsedToForm(parsed) {
 }
 
 /**
- * Adiciona mensagem ao log da IA
+ * Adiciona mensagem ao log da IA (apenas console, sem UI)
  */
 function addLogMessage(message) {
-  const logEl = document.getElementById('pocAiLog');
-  if (!logEl) return;
+  console.log(`[POC AI] ${message}`);
   
-  logEl.classList.remove('d-none');
-  logEl.classList.add('is-visible');
-  const timestamp = new Date().toLocaleTimeString('pt-BR');
-  logEl.innerHTML += `<div>[${timestamp}] ${message}</div>`;
-  logEl.scrollTop = logEl.scrollHeight;
+  // Não mostrar mais o log visualmente
+  // const logEl = document.getElementById('pocAiLog');
+  // if (!logEl) return;
+  // logEl.classList.remove('d-none');
+  // logEl.classList.add('is-visible');
+  // const timestamp = new Date().toLocaleTimeString('pt-BR');
+  // logEl.innerHTML += `<div>[${timestamp}] ${message}</div>`;
+  // logEl.scrollTop = logEl.scrollHeight;
 }
 
 /**
@@ -871,6 +927,20 @@ window.PocAI.run = async function () {
       
       status.textContent = 'Preenchimento automático concluído!';
       addLogMessage('✓ Formulário preenchido com sucesso.');
+      
+      // Fechar modal de preenchimento
+      const fillModal = document.getElementById('pocAiFillModal');
+      if (fillModal && window.bootstrap?.Modal) {
+        const modalInstance = window.bootstrap.Modal.getInstance(fillModal);
+        if (modalInstance) {
+          modalInstance.hide();
+        }
+      }
+      
+      // Mostrar modal de sucesso
+      setTimeout(() => {
+        alert('✅ Formulário preenchido com sucesso!\n\nTodos os campos foram preenchidos automaticamente pela IA. Revise as informações e clique em "Adicionar" para salvar.');
+      }, 300);
       
     } catch (geminiError) {
       console.error('Erro ao chamar Gemini:', geminiError);
