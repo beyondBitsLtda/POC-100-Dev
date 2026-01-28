@@ -217,7 +217,529 @@ updateUI();
 
 
 /* ===============================
- * PocAI – execução real (stub seguro)
+ * Helpers para IA - Gemini
+ * =============================== */
+
+/**
+ * Constrói payload com as opções válidas de categorias e subcategorias
+ * baseadas na constante global INSEGURAS do HTML.
+ * @returns {Object} Estrutura com categorias e subcategorias para PRATICA e CONDICAO
+ */
+function buildInsegurasOptionsPayload() {
+  // INSEGURAS vem do HTML (script inline)
+  if (!window.INSEGURAS) {
+    return { PRATICA: {}, CONDICAO: {} };
+  }
+  return {
+    PRATICA: window.INSEGURAS.PRATICA || {},
+    CONDICAO: window.INSEGURAS.CONDICAO || {}
+  };
+}
+
+/**
+ * Aguarda que um select tenha um número mínimo de opções carregadas.
+ * @param {HTMLSelectElement} selectEl - Elemento select
+ * @param {number} minOptions - Número mínimo de opções (além da opção vazia)
+ * @param {number} timeoutMs - Timeout em milissegundos
+ * @returns {Promise<boolean>} True se carregou, false se timeout
+ */
+function waitForOptions(selectEl, minOptions = 1, timeoutMs = 3000) {
+  return new Promise((resolve) => {
+    const startTime = Date.now();
+    const checkInterval = setInterval(() => {
+      // Conta opções (excluindo a primeira que é geralmente vazia)
+      const optionsCount = selectEl.options.length - 1;
+      if (optionsCount >= minOptions) {
+        clearInterval(checkInterval);
+        resolve(true);
+        return;
+      }
+      if (Date.now() - startTime >= timeoutMs) {
+        clearInterval(checkInterval);
+        resolve(false);
+      }
+    }, 100);
+  });
+}
+
+/**
+ * Chama a API do Gemini para interpretar o texto OCR e retornar
+ * JSON estruturado com os campos do formulário.
+ * @param {string} ocrText - Texto extraído via OCR
+ * @param {Object} options - Opções válidas de categorias/subcategorias
+ * @returns {Promise<Object>} Objeto com campos parseados
+ */
+async function callGeminiToParse(ocrText, options) {
+  const apiKey = localStorage.getItem('pocAiApiKey');
+  if (!apiKey) {
+    throw new Error('Chave API do Gemini não configurada.');
+  }
+
+  console.log('📋 Opções enviadas ao Gemini:', options);
+  const numCatPratica = Object.keys(options.PRATICA || {}).length;
+  const numCatCondicao = Object.keys(options.CONDICAO || {}).length;
+  console.log(`📊 Total: ${numCatPratica} categorias PRATICA, ${numCatCondicao} categorias CONDICAO`);
+
+  // Limitar o texto OCR para reduzir tokens de entrada
+  const ocrLimitado = ocrText.substring(0, 500);
+  
+  // Construir lista COMPLETA e hierárquica de forma MUITO CLARA
+  let estruturaDetalhada = '';
+  
+  estruturaDetalhada += '=== ESTRUTURA HIERÁRQUICA ===\n\n';
+  
+  if (options.PRATICA) {
+    estruturaDetalhada += '📌 TIPO: "PRATICA"\n';
+    estruturaDetalhada += 'Categorias disponíveis para PRATICA:\n\n';
+    Object.entries(options.PRATICA).forEach(([categoria, subcategorias]) => {
+      estruturaDetalhada += `CATEGORIA: "${categoria}"\n`;
+      estruturaDetalhada += `  Subcategorias:\n`;
+      subcategorias.forEach(sub => {
+        estruturaDetalhada += `    - "${sub}"\n`;
+      });
+      estruturaDetalhada += '\n';
+    });
+  }
+  
+  if (options.CONDICAO) {
+    estruturaDetalhada += '📌 TIPO: "CONDICAO"\n';
+    estruturaDetalhada += 'Categorias disponíveis para CONDICAO:\n\n';
+    Object.entries(options.CONDICAO).forEach(([categoria, subcategorias]) => {
+      estruturaDetalhada += `CATEGORIA: "${categoria}"\n`;
+      estruturaDetalhada += `  Subcategorias:\n`;
+      subcategorias.forEach(sub => {
+        estruturaDetalhada += `    - "${sub}"\n`;
+      });
+      estruturaDetalhada += '\n';
+    });
+  }
+  
+  const prompt = `Você é um especialista em análise de segurança. Analise o texto OCR e preencha o JSON seguindo A HIERARQUIA EXATA.
+
+TEXTO OCR:
+"${ocrLimitado}"
+
+${estruturaDetalhada}
+
+PASSO A PASSO OBRIGATÓRIO:
+1️⃣ Determine o TIPO: "PRATICA" (ação insegura de pessoa) OU "CONDICAO" (problema no ambiente/equipamento)
+
+2️⃣ Olhe APENAS as categorias do tipo escolhido acima
+
+3️⃣ Escolha UMA CATEGORIA (exemplo: "B. Posição das Pessoas" OU "CI. Ambiente / Área")
+   ⚠️ ATENÇÃO: Categoria NÃO é "Risco de Queda" - isso é subcategoria!
+   ⚠️ Categoria começa com letra (A., B., C., CI., etc)
+
+4️⃣ Depois de escolher a CATEGORIA, olhe as subcategorias DAQUELA categoria
+
+5️⃣ Escolha UMA SUBCATEGORIA da lista daquela categoria
+
+EXEMPLOS CORRETOS DE PREENCHIMENTO:
+
+Exemplo 1 - PRATICA:
+{
+  "tipoRegistro": "insegura",
+  "tipoInsegura": "PRATICA",
+  "categoria": "B. Posição das Pessoas",
+  "subcategoria": "B.3 Risco de Queda",
+  "observado": "colaborador",
+  "quantidade": 1,
+  "praticaInsegura": "Colaborador em cima de escada sem cinto de segurança realizando manutenção elétrica. Observado trabalhando a 4 metros de altura sem nenhuma proteção contra quedas.",
+  "acaoRecomendada": "Interromper atividade imediatamente. Fornecer cinto paraquedista com talabarte e instalar pontos de ancoragem. Treinar conforme NR-35 antes de retornar ao trabalho em altura."
+}
+
+Exemplo 2 - CONDICAO:
+{
+  "tipoRegistro": "insegura",
+  "tipoInsegura": "CONDICAO",
+  "categoria": "CI. Ambiente / Área",
+  "subcategoria": "CI.1 Piso irregular / escorregadio",
+  "observado": "visitante",
+  "quantidade": 2,
+  "praticaInsegura": "Piso da área de produção apresenta óleo derramado tornando superfície extremamente escorregadia. Dois visitantes transitando pela área correndo risco de queda.",
+  "acaoRecomendada": "Sinalizar e isolar área imediatamente. Realizar limpeza completa com produto absorvente e desengordurante. Investigar fonte do vazamento de óleo e corrigir definitivamente."
+}
+
+Exemplo 3 - PRATICA com EPI:
+{
+  "tipoRegistro": "insegura",
+  "tipoInsegura": "PRATICA",
+  "categoria": "C. EPIs",
+  "subcategoria": "C.1 Cabeça",
+  "observado": "terceiro",
+  "quantidade": 3,
+  "praticaInsegura": "Três terceiros realizando carga e descarga sem capacete de segurança em área com movimentação de ponte rolante e risco de queda de materiais.",
+  "acaoRecomendada": "Fornecer capacetes classe A imediatamente. Orientar sobre obrigatoriedade do uso de EPI conforme ASO e realizar registro no sistema de gestão de segurança."
+}
+
+⚠️ ERROS COMUNS A EVITAR:
+❌ categoria: "Risco de Queda" → ERRADO! Isso é subcategoria
+✅ categoria: "B. Posição das Pessoas", subcategoria: "B.3 Risco de Queda" → CORRETO!
+
+❌ categoria: "Piso escorregadio" → ERRADO! Isso é subcategoria
+✅ categoria: "CI. Ambiente / Área", subcategoria: "CI.1 Piso irregular / escorregadio" → CORRETO!
+
+RETORNE APENAS O JSON PREENCHIDO (sem explicações, sem markdown):`;
+
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [
+              {
+                text: prompt
+              }
+            ]
+          }
+        ],
+        generationConfig: {
+          temperature: 0.2,
+          topK: 40,
+          topP: 0.95,
+          maxOutputTokens: 8192  // Aumentado para máximo (8192)
+        }
+      })
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Gemini API error: ${response.status} - ${errorText}`);
+  }
+
+  const data = await response.json();
+  
+  if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
+    throw new Error('Resposta inválida da API Gemini.');
+  }
+
+  // Verificar se a resposta foi truncada
+  const finishReason = data.candidates[0].finishReason;
+  console.log('Finish reason:', finishReason);
+  
+  if (finishReason === 'MAX_TOKENS') {
+    console.warn('⚠️ Resposta do Gemini foi truncada por limite de tokens');
+    
+    // Tentar modo ultra-simples: usar o OCR como base
+    console.log('Usando fallback com OCR resumido...');
+    
+    // Pegar as primeiras frases do OCR para prática e ação
+    const linhas = ocrText.split('\n').filter(l => l.trim().length > 5);
+    const pratica = linhas.slice(0, 2).join(' ').substring(0, 150).trim() || 'Prática/condição insegura identificada';
+    const acao = linhas.length > 2 ? linhas.slice(2, 4).join(' ').substring(0, 150).trim() : 'Corrigir imediatamente';
+    
+    return {
+      tipoRegistro: 'insegura',
+      tipoInsegura: null,
+      categoria: null,
+      subcategoria: null,
+      observado: 'colaborador',
+      quantidade: 1,
+      praticaInsegura: pratica,
+      acaoRecomendada: acao
+    };
+  }
+
+  const text = data.candidates[0].content.parts
+    .map((p) => p.text || '')
+    .join('')
+    .trim();
+
+  console.log('Resposta bruta do Gemini:', text);
+
+  // Remove markdown code blocks se presentes
+  let cleanText = text
+    .replace(/```json\s*/gi, '')
+    .replace(/```\s*/g, '')
+    .trim();
+  
+  // Remove possíveis textos antes/depois do JSON
+  const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
+  if (jsonMatch) {
+    cleanText = jsonMatch[0];
+  }
+  
+  console.log('Texto limpo para parse:', cleanText);
+  
+  // Parse JSON
+  try {
+    const parsed = JSON.parse(cleanText);
+    return parsed;
+  } catch (parseError) {
+    console.error('Erro ao fazer parse do JSON:', parseError);
+    console.error('Texto que falhou:', cleanText);
+    throw new Error(`Falha ao interpretar resposta do Gemini: ${parseError.message}`);
+  }
+}
+
+/**
+ * Valida e sanitiza os campos parseados pelo Gemini.
+ * @param {Object} parsed - Objeto parseado
+ * @param {Object} options - Opções válidas
+ * @returns {Object} Objeto validado
+ */
+function validateParsedFields(parsed, options) {
+  const validated = { ...parsed };
+
+  // Função para normalizar strings (remove espaços extras, normaliza unicode)
+  const normalize = (str) => {
+    if (!str) return str;
+    return str.trim().replace(/\s+/g, ' ').normalize('NFC');
+  };
+
+  // Validar tipoInsegura
+  if (!['PRATICA', 'CONDICAO'].includes(validated.tipoInsegura)) {
+    console.warn(`⚠ tipoInsegura inválido: "${validated.tipoInsegura}"`);
+    validated.tipoInsegura = null;
+  }
+
+  // Validar categoria e subcategoria
+  if (validated.tipoInsegura && validated.categoria) {
+    const categoriesValid = Object.keys(options[validated.tipoInsegura] || {});
+    const categoriaNormalizada = normalize(validated.categoria);
+    const categoriasNormalizadas = categoriesValid.map(c => normalize(c));
+    
+    console.log(`🔍 Validando categoria:`);
+    console.log(`   Tipo: ${validated.tipoInsegura}`);
+    console.log(`   Categoria recebida: "${validated.categoria}"`);
+    console.log(`   Categoria normalizada: "${categoriaNormalizada}"`);
+    console.log(`   Categorias válidas:`, categoriesValid);
+    console.log(`   Categorias normalizadas:`, categoriasNormalizadas);
+    
+    // Buscar índice da categoria normalizada
+    const indexCategoria = categoriasNormalizadas.indexOf(categoriaNormalizada);
+    
+    if (indexCategoria === -1) {
+      console.warn(`⚠ Categoria "${validated.categoria}" não encontrada. Válidas:`, categoriesValid);
+      validated.categoria = null;
+      validated.subcategoria = null;
+    } else {
+      // Usar a categoria original (não normalizada) do objeto options
+      const categoriaCorreta = categoriesValid[indexCategoria];
+      console.log(`✅ Categoria encontrada! Usando: "${categoriaCorreta}"`);
+      validated.categoria = categoriaCorreta;
+      
+      if (validated.subcategoria) {
+        const subcategoriesValid = options[validated.tipoInsegura][categoriaCorreta] || [];
+        const subcategoriaNormalizada = normalize(validated.subcategoria);
+        const subcategoriasNormalizadas = subcategoriesValid.map(s => normalize(s));
+        
+        console.log(`🔍 Validando subcategoria:`);
+        console.log(`   Subcategoria recebida: "${validated.subcategoria}"`);
+        console.log(`   Subcategoria normalizada: "${subcategoriaNormalizada}"`);
+        console.log(`   Subcategorias válidas:`, subcategoriesValid);
+        
+        const indexSubcategoria = subcategoriasNormalizadas.indexOf(subcategoriaNormalizada);
+        
+        if (indexSubcategoria === -1) {
+          console.warn(`⚠ Subcategoria "${validated.subcategoria}" não encontrada. Válidas:`, subcategoriesValid);
+          validated.subcategoria = null;
+        } else {
+          const subcategoriaCorreta = subcategoriesValid[indexSubcategoria];
+          console.log(`✅ Subcategoria encontrada! Usando: "${subcategoriaCorreta}"`);
+          validated.subcategoria = subcategoriaCorreta;
+        }
+      }
+    }
+  } else {
+    validated.categoria = null;
+    validated.subcategoria = null;
+  }
+
+  // Validar observado
+  if (!['colaborador', 'terceiro', 'visitante'].includes(validated.observado)) {
+    console.warn(`⚠ observado inválido: "${validated.observado}"`);
+    validated.observado = null;
+  }
+
+  // Validar quantidade
+  if (validated.quantidade != null) {
+    const qty = parseInt(validated.quantidade, 10);
+    if (isNaN(qty) || qty < 1) {
+      console.warn(`⚠ quantidade inválida: "${validated.quantidade}"`);
+      validated.quantidade = null;
+    } else {
+      validated.quantidade = qty;
+    }
+  }
+
+  console.log('✅ Validação concluída:', validated);
+  return validated;
+}
+
+/**
+ * Aplica os campos parseados ao formulário, seguindo a ordem correta
+ * de preenchimento e disparando eventos necessários.
+ * @param {Object} parsed - Objeto validado com os campos
+ */
+async function applyParsedToForm(parsed) {
+  addLogMessage(`Aplicando campos: tipo=${parsed.tipoInsegura}, cat=${parsed.categoria}, subcat=${parsed.subcategoria}`);
+  
+  // 1. Marcar tipo-registro = "insegura"
+  const tipoRegistroRadio = document.querySelector('input[name="tipo-registro"][value="insegura"]');
+  if (tipoRegistroRadio && !tipoRegistroRadio.checked) {
+    tipoRegistroRadio.checked = true;
+    tipoRegistroRadio.dispatchEvent(new Event('change', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 200));
+    addLogMessage('✓ Tipo de registro marcado: insegura');
+  }
+
+  // 2. Marcar radio tipoInsegura (PRATICA ou CONDICAO)
+  if (parsed.tipoInsegura) {
+    const tipoInseguraRadio = document.querySelector(`input[name="tipoInsegura"][value="${parsed.tipoInsegura}"]`);
+    if (tipoInseguraRadio) {
+      const currentChecked = document.querySelector('input[name="tipoInsegura"]:checked');
+      if (!currentChecked || currentChecked.value !== parsed.tipoInsegura) {
+        tipoInseguraRadio.checked = true;
+        
+        // Disparar evento tanto nativo quanto jQuery
+        tipoInseguraRadio.dispatchEvent(new Event('change', { bubbles: true }));
+        if (window.$ && window.$(tipoInseguraRadio).length) {
+          window.$(tipoInseguraRadio).trigger('change');
+        }
+        
+        addLogMessage(`✓ Tipo marcado: ${parsed.tipoInsegura}. Aguardando categorias...`);
+        await new Promise(r => setTimeout(r, 300));
+        
+        // Aguardar opções de categoria carregarem
+        const catLoaded = await waitForOptions(categoriaSelect, 1, 3000);
+        if (catLoaded) {
+          addLogMessage(`✓ Categorias carregadas: ${categoriaSelect.options.length - 1} opções`);
+        } else {
+          addLogMessage('⚠ Timeout aguardando categorias');
+        }
+      }
+    }
+  }
+
+  // 3. Selecionar categoria
+  if (parsed.categoria) {
+    await new Promise(r => setTimeout(r, 200));
+    
+    // Verificar se a categoria existe nas opções
+    const optionsArray = Array.from(categoriaSelect.options);
+    const hasOption = optionsArray.some(opt => opt.value === parsed.categoria);
+    
+    addLogMessage(`Tentando selecionar categoria: "${parsed.categoria}" (existe: ${hasOption})`);
+    
+    if (hasOption && categoriaSelect.value !== parsed.categoria) {
+      categoriaSelect.value = parsed.categoria;
+      
+      // Disparar eventos nativos e jQuery
+      categoriaSelect.dispatchEvent(new Event('change', { bubbles: true }));
+      if (window.$ && window.$(categoriaSelect).length) {
+        window.$(categoriaSelect).trigger('change');
+      }
+      
+      addLogMessage(`✓ Categoria selecionada: ${parsed.categoria}. Aguardando subcategorias...`);
+      await new Promise(r => setTimeout(r, 300));
+      
+      // Aguardar opções de subcategoria carregarem
+      const subLoaded = await waitForOptions(subcategoriaSelect, 1, 3000);
+      if (subLoaded) {
+        addLogMessage(`✓ Subcategorias carregadas: ${subcategoriaSelect.options.length - 1} opções`);
+      } else {
+        addLogMessage('⚠ Timeout aguardando subcategorias');
+      }
+    } else if (!hasOption) {
+      addLogMessage(`⚠ Categoria "${parsed.categoria}" não encontrada nas opções disponíveis`);
+    }
+  }
+
+  // 4. Selecionar subcategoria
+  if (parsed.subcategoria) {
+    await new Promise(r => setTimeout(r, 200));
+    
+    const optionsArray = Array.from(subcategoriaSelect.options);
+    const hasOption = optionsArray.some(opt => opt.value === parsed.subcategoria);
+    
+    addLogMessage(`Tentando selecionar subcategoria: "${parsed.subcategoria}" (existe: ${hasOption})`);
+    
+    if (hasOption && subcategoriaSelect.value !== parsed.subcategoria) {
+      subcategoriaSelect.value = parsed.subcategoria;
+      
+      // Disparar eventos nativos e jQuery
+      subcategoriaSelect.dispatchEvent(new Event('change', { bubbles: true }));
+      if (window.$ && window.$(subcategoriaSelect).length) {
+        window.$(subcategoriaSelect).trigger('change');
+      }
+      
+      addLogMessage(`✓ Subcategoria selecionada: ${parsed.subcategoria}`);
+    } else if (!hasOption) {
+      addLogMessage(`⚠ Subcategoria "${parsed.subcategoria}" não encontrada nas opções disponíveis`);
+    }
+  }
+
+  // 5. Selecionar observado
+  const observadoSelect = document.getElementById('observado');
+  if (parsed.observado && observadoSelect && !observadoSelect.value) {
+    observadoSelect.value = parsed.observado;
+    observadoSelect.dispatchEvent(new Event('change', { bubbles: true }));
+    addLogMessage(`✓ Observado: ${parsed.observado}`);
+  }
+
+  // 6. Preencher quantidade
+  const quantidadeInput = document.getElementById('quantidade');
+  if (parsed.quantidade != null && quantidadeInput && !quantidadeInput.value) {
+    quantidadeInput.value = parsed.quantidade;
+    quantidadeInput.dispatchEvent(new Event('input', { bubbles: true }));
+    addLogMessage(`✓ Quantidade: ${parsed.quantidade}`);
+  }
+
+  // 7. Preencher prática insegura (APENAS se vazio)
+  const praticaTextarea = document.getElementById('pratica-insegura');
+  if (parsed.praticaInsegura && praticaTextarea && !praticaTextarea.value.trim()) {
+    praticaTextarea.value = parsed.praticaInsegura;
+    praticaTextarea.dispatchEvent(new Event('input', { bubbles: true }));
+    addLogMessage('✓ Prática insegura preenchida');
+  }
+
+  // 8. Preencher ação recomendada (APENAS se vazio)
+  const acaoTextarea = document.getElementById('acao-recomendada');
+  if (parsed.acaoRecomendada && acaoTextarea && !acaoTextarea.value.trim()) {
+    acaoTextarea.value = parsed.acaoRecomendada;
+    acaoTextarea.dispatchEvent(new Event('input', { bubbles: true }));
+    addLogMessage('✓ Ação recomendada preenchida');
+  }
+
+  // 9. Atualizar UI
+  await new Promise(r => setTimeout(r, 200));
+  updateUI();
+}
+
+/**
+ * Adiciona mensagem ao log da IA
+ */
+function addLogMessage(message) {
+  const logEl = document.getElementById('pocAiLog');
+  if (!logEl) return;
+  
+  logEl.classList.remove('d-none');
+  logEl.classList.add('is-visible');
+  const timestamp = new Date().toLocaleTimeString('pt-BR');
+  logEl.innerHTML += `<div>[${timestamp}] ${message}</div>`;
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+/**
+ * Limpa o log da IA
+ */
+function clearLogMessages() {
+  const logEl = document.getElementById('pocAiLog');
+  if (!logEl) return;
+  logEl.innerHTML = '';
+  logEl.classList.add('d-none');
+  logEl.classList.remove('is-visible');
+}
+
+/* ===============================
+ * PocAI – execução real com Gemini
  * =============================== */
 window.PocAI = window.PocAI || {};
 window.PocAI.run = async function () {
@@ -227,12 +749,9 @@ window.PocAI.run = async function () {
   const progress = document.getElementById('pocAiProgress');
   const error = document.getElementById('pocAiError');
   const runBtn = document.getElementById('pocAiRun');
-  const log = document.getElementById('pocAiLog');
-  const recognized = {
-    frontText: '',
-    backText: '',
-    combinedText: ''
-  };
+
+  // Limpar log anterior
+  clearLogMessages();
 
   if (!front?.files?.length || !back?.files?.length) {
     status.textContent = 'Selecione a frente e o verso do cartão.';
@@ -244,170 +763,18 @@ window.PocAI.run = async function () {
     return;
   }
 
-  const logStep = (message) => {
-    if (!log) return;
-    const entry = document.createElement('div');
-    entry.textContent = message;
-    log.appendChild(entry);
-    log.scrollTop = log.scrollHeight;
-  };
+  const apiKey = localStorage.getItem('pocAiApiKey');
+  const aiEnabled = localStorage.getItem('pocAiEnabled') === 'true';
 
-  const clearLog = () => {
-    if (!log) return;
-    log.textContent = '';
-  };
+  if (!aiEnabled) {
+    status.textContent = 'Modo IA desligado. Ative nas configurações.';
+    return;
+  }
 
-  const normalizeOcrText = (text) => {
-    return text
-      .replace(/\r\n/g, '\n')
-      .replace(/[ \t]+/g, ' ')
-      .replace(/\n{3,}/g, '\n\n')
-      .trim();
-  };
-
-  const cleanTextField = (text) => {
-    const lines = normalizeOcrText(text)
-      .split('\n')
-      .map((line) => line.trim())
-      .filter(Boolean);
-    const unique = [...new Set(lines)];
-    return unique.join('\n');
-  };
-
-  const getAiSettings = () => {
-    const apiKey = localStorage.getItem('pocAiApiKey') || '';
-    const enabled = localStorage.getItem('pocAiEnabled') === 'true';
-    return { apiKey, enabled };
-  };
-
-  // Aguarda o carregamento de opções em um select dinâmico.
-  const waitForOptions = (select, minOptions = 2, timeout = 1500) => {
-    return new Promise((resolve) => {
-      const start = Date.now();
-      const check = () => {
-        if (select?.options?.length >= minOptions) {
-          resolve(true);
-          return;
-        }
-        if (Date.now() - start > timeout) {
-          resolve(false);
-          return;
-        }
-        setTimeout(check, 60);
-      };
-      check();
-    });
-  };
-
-  const getValidOptions = (select) => {
-    return Array.from(select?.options || [])
-      .map((opt) => opt.value)
-      .filter((value) => value !== '');
-  };
-
-  const setSelectIfValid = (select, value) => {
-    if (!select || !value || select.value.trim()) return false;
-    const options = getValidOptions(select);
-    if (!options.includes(value)) return false;
-    select.value = value;
-    select.dispatchEvent(new Event('change', { bubbles: true }));
-    return true;
-  };
-
-  const setRadioIfValid = (name, value) => {
-    if (!value) return false;
-    const existing = document.querySelector(`input[name="${name}"]:checked`);
-    if (existing) return false;
-    const target = document.querySelector(`input[name="${name}"][value="${value}"]`);
-    if (!target) return false;
-    target.checked = true;
-    target.dispatchEvent(new Event('change', { bubbles: true }));
-    return true;
-  };
-
-  // Constrói o payload de opções válidas de categorias/subcategorias.
-  const buildInsegurasOptionsPayload = (insegurasData) => {
-    const tipos = Object.keys(insegurasData || {});
-    const categoriasPorTipo = tipos.reduce((acc, tipo) => {
-      acc[tipo] = Object.keys(insegurasData[tipo] || {});
-      return acc;
-    }, {});
-    const subcategoriasPorTipo = tipos.reduce((acc, tipo) => {
-      const categorias = insegurasData[tipo] || {};
-      acc[tipo] = Object.keys(categorias).reduce((catAcc, categoria) => {
-        catAcc[categoria] = categorias[categoria] || [];
-        return catAcc;
-      }, {});
-      return acc;
-    }, {});
-    return {
-      tipos,
-      categoriasPorTipo,
-      subcategoriasPorTipo
-    };
-  };
-
-  // Envia o texto OCR para o Gemini e retorna o JSON parseado.
-  const callGeminiToParse = async (ocrText, options) => {
-    const prompt = `
-Você extrai dados de um cartão POC. Retorne apenas JSON válido (sem markdown).
-
-Tarefa:
-- Interpretar o texto OCR abaixo e preencher os campos solicitados.
-- Para radios/selects, use somente valores das listas fornecidas (match exato) ou null.
-- Se não tiver certeza, use null.
-- Use strings curtas e objetivas para texto.
-- Não inclua dados do formulário como data, hora, observador, unidade, setor.
-
-Schema obrigatório:
-{
-  "tipoRegistro": "insegura",
-  "tipoInsegura": "PRATICA" | "CONDICAO" | null,
-  "categoria": string | null,
-  "subcategoria": string | null,
-  "observado": "colaborador" | "terceiro" | "visitante" | null,
-  "quantidade": number | null,
-  "praticaInsegura": string | null,
-  "acaoRecomendada": string | null
-}
-
-Listas válidas (use match exato):
-tiposValidos: ${JSON.stringify(options.tipos)}
-categoriasValidasPorTipo: ${JSON.stringify(options.categoriasPorTipo)}
-subcategoriasPorTipo: ${JSON.stringify(options.subcategoriasPorTipo)}
-observadoOpcoes: ["colaborador", "terceiro", "visitante"]
-
-Texto OCR (frente/verso):
-${ocrText}
-`;
-
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${options.apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ role: 'user', parts: [{ text: prompt }] }],
-          generationConfig: {
-            temperature: 0.2,
-            maxOutputTokens: 768
-          }
-        })
-      }
-    );
-    if (!response.ok) {
-      throw new Error('Erro ao chamar Gemini.');
-    }
-    const data = await response.json();
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    if (!text) {
-      throw new Error('Gemini não retornou conteúdo.');
-    }
-    const cleaned = text.replace(/```json/g, '').replace(/```/g, '').trim();
-    return JSON.parse(cleaned);
-  };
-
-  clearLog();
+  if (!apiKey) {
+    status.textContent = 'Configure a API Key do Gemini nas opções.';
+    return;
+  }
 
   if (runBtn) {
     runBtn.disabled = true;
@@ -423,6 +790,7 @@ ${ocrText}
   }
 
   status.textContent = 'Enviando imagens para leitura por IA…';
+  addLogMessage('Iniciando processamento...');
 
   const readFileAsDataUrl = (file) => {
     return new Promise((resolve, reject) => {
@@ -446,195 +814,94 @@ ${ocrText}
     return result?.data?.text || '';
   };
 
-  const applyOcrFallback = (selectedType, combinedText, frontText, backText) => {
-    const fallbackText = combinedText || frontText || backText;
-    const pratica = document.getElementById('pratica-insegura');
-    const acao = document.getElementById('acao-recomendada');
-    const reconhecimento = document.getElementById('reconhecimento');
-
-    if (selectedType === 'insegura' && pratica && !pratica.value.trim()) {
-      pratica.value = fallbackText;
-    }
-    if (selectedType === 'insegura' && acao && !acao.value.trim()) {
-      acao.value = fallbackText;
-    }
-    if (selectedType === 'segura' && reconhecimento && !reconhecimento.value.trim()) {
-      reconhecimento.value = fallbackText;
-    }
-  };
-
-  // Aplica o JSON interpretado no formulário com validação e ordem obrigatória.
-  const applyParsedToForm = async (payload, options) => {
-    if (!payload) return false;
-    let didApply = false;
-
-    const validTipos = ['PRATICA', 'CONDICAO'];
-    const tipoInsegura = validTipos.includes(payload.tipoInsegura)
-      ? payload.tipoInsegura
-      : null;
-    const categoria =
-      tipoInsegura && options.categoriasPorTipo[tipoInsegura]?.includes(payload.categoria)
-        ? payload.categoria
-        : null;
-    const subcategoria =
-      tipoInsegura
-      && categoria
-      && (options.subcategoriasPorTipo[tipoInsegura]?.[categoria] || []).includes(
-        payload.subcategoria
-      )
-        ? payload.subcategoria
-        : null;
-    const observadoOpcoes = ['colaborador', 'terceiro', 'visitante'];
-    const observado = observadoOpcoes.includes(payload.observado) ? payload.observado : null;
-    const quantidade = Number.isFinite(Number(payload.quantidade))
-      ? Math.round(Number(payload.quantidade))
-      : null;
-    const quantidadeValida = quantidade && quantidade >= 1 ? quantidade : null;
-    const praticaTexto = payload.praticaInsegura ? cleanTextField(payload.praticaInsegura) : null;
-    const acaoTexto = payload.acaoRecomendada ? cleanTextField(payload.acaoRecomendada) : null;
-
-    const tipoRegistroSet = setRadioIfValid('tipo-registro', 'insegura');
-    if (tipoRegistroSet) {
-      didApply = true;
-    }
-
-    const tipoSet = setRadioIfValid('tipoInsegura', tipoInsegura);
-    if (tipoSet) {
-      didApply = true;
-    }
-
-    if (tipoSet || tipoRegistroSet) {
-      await waitForOptions(categoriaSelect, 2, 1500);
-    }
-
-    if (categoria) {
-      const categoriaSet = setSelectIfValid(categoriaSelect, categoria);
-      if (categoriaSet) {
-        await waitForOptions(subcategoriaSelect, 2, 1500);
-        didApply = true;
-      }
-    }
-
-    if (subcategoria) {
-      const subcategoriaSet = setSelectIfValid(subcategoriaSelect, subcategoria);
-      if (subcategoriaSet) {
-        didApply = true;
-      }
-    }
-
-    const observadoSelect = document.getElementById('observado');
-    if (observadoSelect && observado && !observadoSelect.value.trim()) {
-      const validObservado = getValidOptions(observadoSelect);
-      if (validObservado.includes(observado)) {
-        observadoSelect.value = observado;
-        observadoSelect.dispatchEvent(new Event('change', { bubbles: true }));
-        didApply = true;
-      }
-    }
-
-    const quantidadeInput = document.getElementById('quantidade');
-    if (quantidadeInput && quantidadeInput.value.trim() === '' && quantidadeValida) {
-      quantidadeInput.value = String(quantidadeValida);
-      quantidadeInput.dispatchEvent(new Event('input', { bubbles: true }));
-      didApply = true;
-    }
-
-    const praticaField = document.getElementById('pratica-insegura');
-    if (praticaField && praticaTexto && !praticaField.value.trim()) {
-      praticaField.value = praticaTexto;
-      didApply = true;
-    }
-    const acaoField = document.getElementById('acao-recomendada');
-    if (acaoField && acaoTexto && !acaoField.value.trim()) {
-      acaoField.value = acaoTexto;
-      didApply = true;
-    }
-    return didApply;
-  };
-
   try {
+    // Fase 1: OCR
+    addLogMessage('Extraindo texto das imagens com OCR...');
     status.textContent = 'Imagens recebidas. Interpretando conteúdo…';
     const [frontText, backText] = await Promise.all([
       recognizeImage(front.files[0], 'Frente'),
       recognizeImage(back.files[0], 'Verso')
     ]);
 
-    const combinedText = normalizeOcrText(
-      [frontText, backText].map((text) => text.trim()).filter(Boolean).join('\n\n')
-    );
-    const selectedType = getSelectedType();
-    recognized.frontText = frontText;
-    recognized.backText = backText;
-    recognized.combinedText = combinedText;
+    const combinedText = [frontText, backText]
+      .map((text) => text.trim())
+      .filter(Boolean)
+      .join('\n\n');
 
-    logStep('OCR ok');
-
-    if (selectedType === 'insegura') {
-      const { apiKey, enabled } = getAiSettings();
-      const insegurasData = window.INSEGURAS || {};
-      const optionsPayload = buildInsegurasOptionsPayload(insegurasData);
-
-      if (enabled && apiKey && Object.keys(insegurasData).length) {
-        logStep('Interpretando com Gemini...');
-        try {
-          const parsed = await callGeminiToParse(combinedText || frontText || backText, {
-            apiKey,
-            ...optionsPayload
-          });
-          logStep('JSON ok');
-          logStep('Aplicando campos...');
-          const applied = await applyParsedToForm(parsed, optionsPayload);
-          if (!applied) {
-            logStep('Nenhum campo aplicável retornado. Usando OCR como fallback.');
-            applyOcrFallback(selectedType, combinedText, frontText, backText);
-          }
-        } catch (geminiError) {
-          if (error) {
-            error.classList.remove('d-none');
-            error.textContent = geminiError?.message || 'Falha ao interpretar com Gemini.';
-          }
-          logStep('Falha no Gemini. Usando OCR como fallback.');
-          applyOcrFallback(selectedType, combinedText, frontText, backText);
-        }
-      } else {
-        if (!enabled) {
-          logStep('Modo IA desativado. Usando OCR como fallback.');
-        } else if (!apiKey) {
-          logStep('Chave do Gemini ausente. Usando OCR como fallback.');
-        } else {
-          logStep('Dados de categorias indisponíveis. Usando OCR como fallback.');
-        }
-        applyOcrFallback(selectedType, combinedText, frontText, backText);
-      }
+    if (!combinedText) {
+      throw new Error('Não foi possível extrair texto das imagens.');
     }
 
-    if (selectedType === 'segura') {
+    addLogMessage('OCR concluído. Texto extraído.');
+
+    const selectedType = getSelectedType();
+
+    // Se não for tipo "insegura", usar fallback simples
+    if (selectedType !== 'insegura') {
+      addLogMessage('Tipo de registro não é "insegura". Preenchendo campo de reconhecimento...');
       const reconhecimento = document.getElementById('reconhecimento');
       if (reconhecimento && !reconhecimento.value.trim()) {
-        reconhecimento.value = combinedText || frontText || backText;
+        reconhecimento.value = combinedText;
+      }
+      updateUI();
+      status.textContent = 'Leitura concluída. Campo preenchido com OCR.';
+      addLogMessage('Concluído.');
+      return;
+    }
+
+    // Fase 2: Interpretação com Gemini
+    addLogMessage('Interpretando conteúdo com Gemini...');
+    status.textContent = 'Analisando conteúdo com IA...';
+    
+    const options = buildInsegurasOptionsPayload();
+    let parsed;
+    
+    try {
+      parsed = await callGeminiToParse(combinedText, options);
+      console.log('✅ Parsed do Gemini:', JSON.stringify(parsed, null, 2));
+      addLogMessage(`JSON recebido: ${JSON.stringify(parsed)}`);
+      
+      // Validar campos
+      const validated = validateParsedFields(parsed, options);
+      console.log('✅ Campos validados:', JSON.stringify(validated, null, 2));
+      addLogMessage(`Validado - pratica: "${validated.praticaInsegura}", acao: "${validated.acaoRecomendada}"`);
+      
+      // Aplicar ao formulário
+      await applyParsedToForm(validated);
+      
+      status.textContent = 'Preenchimento automático concluído!';
+      addLogMessage('✓ Formulário preenchido com sucesso.');
+      
+    } catch (geminiError) {
+      console.error('Erro ao chamar Gemini:', geminiError);
+      addLogMessage(`⚠ Erro no Gemini: ${geminiError.message}`);
+      
+      // Fallback: preencher apenas os textareas com OCR bruto
+      addLogMessage('Usando fallback: preenchendo campos de texto com OCR bruto.');
+      const pratica = document.getElementById('pratica-insegura');
+      const acao = document.getElementById('acao-recomendada');
+      if (pratica && !pratica.value.trim()) {
+        pratica.value = combinedText;
+      }
+      if (acao && !acao.value.trim()) {
+        acao.value = combinedText;
+      }
+      updateUI();
+      status.textContent = 'Erro na interpretação IA. Campos preenchidos com OCR bruto.';
+      
+      if (error) {
+        error.classList.remove('d-none');
+        error.textContent = `Erro ao processar com Gemini: ${geminiError.message}. Campos preenchidos com texto bruto.`;
       }
     }
 
-    updateUI();
-    logStep('Concluído');
-    status.textContent = 'Leitura concluída. Campos preenchidos.';
   } catch (err) {
+    console.error('Erro no processamento:', err);
+    addLogMessage(`✗ Erro: ${err.message}`);
+    
     if (error) {
       error.classList.remove('d-none');
       error.textContent = err?.message || 'Erro ao ler imagens.';
-    }
-    logStep('Erro ao interpretar imagens. Aplicando fallback OCR.');
-    try {
-      const selectedType = getSelectedType();
-      applyOcrFallback(
-        selectedType,
-        recognized.combinedText,
-        recognized.frontText,
-        recognized.backText
-      );
-      updateUI();
-    } catch (fallbackError) {
-      console.error(fallbackError);
     }
     status.textContent = 'Não foi possível interpretar as imagens.';
   } finally {
@@ -647,6 +914,9 @@ ${ocrText}
   }
 };
 
+/* ===============================
+ * Configurações e Modais
+ * =============================== */
 document.addEventListener('DOMContentLoaded', () => {
   const runBtn = document.getElementById('pocAiRun');
   const fillModalEl = document.getElementById('pocAiFillModal');
@@ -664,9 +934,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const modeCameraBtn = document.getElementById('pocAiModeCamera');
   const modeGalleryBtn = document.getElementById('pocAiModeGallery');
   const modeStatus = document.getElementById('pocAiFillStatus');
-  const settingsKeyInput = document.getElementById('pocAiApiKey');
-  const settingsEnabledInput = document.getElementById('pocAiEnabled');
-  const settingsSaveBtn = document.getElementById('pocAiSaveSettings');
+
+  // Settings modal
+  const apiKeyInput = document.getElementById('pocAiApiKey');
+  const enabledSwitch = document.getElementById('pocAiEnabled');
+  const saveSettingsBtn = document.getElementById('pocAiSaveSettings');
   const settingsStatus = document.getElementById('pocAiSettingsStatus');
 
   const ensureModal = (modalElement) => {
@@ -695,27 +967,39 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  const loadAiSettings = () => {
-    if (!settingsKeyInput || !settingsEnabledInput) return;
-    settingsKeyInput.value = localStorage.getItem('pocAiApiKey') || '';
-    settingsEnabledInput.checked = localStorage.getItem('pocAiEnabled') === 'true';
-  };
+  // Carregar configurações salvas
+  if (apiKeyInput) {
+    apiKeyInput.value = localStorage.getItem('pocAiApiKey') || '';
+  }
+  if (enabledSwitch) {
+    enabledSwitch.checked = localStorage.getItem('pocAiEnabled') === 'true';
+  }
 
-  const saveAiSettings = () => {
-    if (!settingsKeyInput || !settingsEnabledInput) return;
-    localStorage.setItem('pocAiApiKey', settingsKeyInput.value.trim());
-    localStorage.setItem('pocAiEnabled', settingsEnabledInput.checked ? 'true' : 'false');
-    if (settingsStatus) {
-      settingsStatus.classList.remove('d-none');
-      settingsStatus.textContent = 'Configurações salvas com sucesso.';
-    }
-  };
+  // Salvar configurações
+  if (saveSettingsBtn) {
+    saveSettingsBtn.addEventListener('click', () => {
+      const apiKey = apiKeyInput?.value?.trim() || '';
+      const enabled = enabledSwitch?.checked || false;
+
+      localStorage.setItem('pocAiApiKey', apiKey);
+      localStorage.setItem('pocAiEnabled', enabled ? 'true' : 'false');
+
+      if (settingsStatus) {
+        settingsStatus.classList.remove('d-none');
+        settingsStatus.textContent = 'Configurações salvas com sucesso!';
+        setTimeout(() => {
+          settingsStatus.classList.add('d-none');
+        }, 3000);
+      }
+    });
+  }
 
   fillButtons.forEach((btn) => {
     if (!btn) return;
     btn.addEventListener('click', () => {
       const modal = ensureModal(fillModalEl);
       if (modal) {
+        clearLogMessages();
         modal.show();
       }
     });
@@ -730,20 +1014,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   });
-
-  if (settingsSaveBtn) {
-    settingsSaveBtn.addEventListener('click', saveAiSettings);
-  }
-
-  if (settingsModalEl) {
-    settingsModalEl.addEventListener('show.bs.modal', () => {
-      loadAiSettings();
-      if (settingsStatus) {
-        settingsStatus.classList.add('d-none');
-        settingsStatus.textContent = '';
-      }
-    });
-  }
 
   if (modeCameraBtn) {
     modeCameraBtn.addEventListener('click', () => setCaptureMode('camera'));
